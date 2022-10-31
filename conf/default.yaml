@@ -1,0 +1,5 @@
+# Grabs the default configuration for training and for the diffuser
+defaults:
+  - /main@main
+  - /deep_learning@dl
+  - /classifier@cls

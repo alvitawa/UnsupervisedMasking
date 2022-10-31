@@ -1,0 +1,35 @@
+main:
+  task: train
+  model: supermask_convnet
+  weights: ViT-B/32
+  force_cpu: false
+  outputs: out
+  info: ''
+  monitor: val/loss
+  monitor_mode: min
+  save_top_k: 4
+  run: ''
+  mvp: true
+  train: true
+  test: true
+  dataset: mnist
+  data_path: ~/data
+  save_as: ''
+dl:
+  shuffle: true
+  batch_size: 128
+  forward_batch_size: 8192
+  epochs: 100
+  lr: 0.0001
+  weight_decay: 0.0
+  num_workers: 0
+  batch_accum: 1
+  optimizer: adam
+  analyze_train_every: 1
+  analyze_val_every: 1
+  analyze_sample_size: 8
+cls:
+  loss: cross_entropy
+models:
+  supermask_convnet:
+    sparsity: 0.5
