@@ -1,3 +1,0 @@
-- main.model=supermask_convnet
-- +models.supermask_convnet.sparsity=0.0
-- dl.epochs=20

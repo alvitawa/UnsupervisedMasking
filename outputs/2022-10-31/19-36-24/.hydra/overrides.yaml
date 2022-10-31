@@ -1,2 +1,0 @@
-- main.model=supermask_convnet
-- +models.supermask_convnet.sparsity=0.5
