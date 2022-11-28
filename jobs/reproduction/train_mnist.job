@@ -1,0 +1,14 @@
+#!/bin/bash
+
+#SBATCH --job-name=TRAIMNIST
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=3
+#SBATCH --gres=gpu:1
+#SBATCH --time=48:00:00
+#SBATCH --mem=32000M
+#SBATCH --partition=gpu
+#SBATCH --output=out/slurm_%A.out
+
+source load.sh
+
+srun python3 main.py --multirun main.model=supermask_convnet main.info=nodropout "+models.supermask_convnet.sparsity=range(0.1,1.1,0.1)" dl.epochs=20

@@ -1,0 +1,15 @@
+#!/bin/bash
+
+#SBATCH --job-name=TRAIN
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=3
+#SBATCH --gres=gpu:1
+#SBATCH --time=48:00:00
+#SBATCH --mem=32000M
+#SBATCH --partition=gpu_titanrtx
+#SBATCH --output=out/slurm_%A.out
+
+source load.sh
+
+#srun python3  main.py --multirun main.model=clip dl.epochs=100 main.dataset=cifar10pgn dl.optimizer=sgd dl.lr=0.1 dl.momentum=0.9 dl.batch_size=256 dl.weight_decay=0.0005 dl.scheduler=cosine model.clip.submask=1 model.clip.submask_scale=1,0 model.clip.scores_init=default_scores_init,positive_scores_init
+srun python3  main.py --multirun main.model=clip dl.epochs=150 main.dataset=cifar10pgn dl.optimizer=sgd dl.lr=0.1 dl.momentum=0.9 dl.batch_size=256 dl.weight_decay=0.0005 dl.scheduler=cosine model.clip.submask=1 model.clip.submask_scale=1,0 model.clip.scores_init=positive_scores_init

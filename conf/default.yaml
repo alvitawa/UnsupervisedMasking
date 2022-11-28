@@ -3,3 +3,8 @@ defaults:
   - /main@main
   - /deep_learning@dl
   - /classifier@cls
+  - /model/clip@model.clip
+  - /model/repro@model.repro
+  - /model/timm@model.timm
+  # https://hydra.cc/docs/1.0/plugins/joblib_launcher/
+#  - override hydra/launcher: joblib

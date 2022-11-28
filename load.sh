@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 case "$USER" in
-	lcur*)
+	awarmerdam*)
 		module purge
 
 		module load 2021
@@ -19,3 +19,4 @@ esac
 
 export HYDRA_FULL_ERROR=1
 export NEPTUNE_ALLOW_SELF_SIGNED_CERTIFICATE=1
+export TOKENIZERS_PARALLELISM=false

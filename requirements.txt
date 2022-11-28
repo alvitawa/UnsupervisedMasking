@@ -1,0 +1,6 @@
+torch
+torchvision
+matplotlib
+neptune-client
+hydra-core
+pytorch_lightning

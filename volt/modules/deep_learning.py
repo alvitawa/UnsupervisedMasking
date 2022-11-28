@@ -1,4 +1,6 @@
+import math
 from dataclasses import dataclass
+from typing import List
 
 import torch
 from pytorch_lightning import LightningModule
@@ -18,12 +20,14 @@ class DeepLearningConfig:
     batch_size: int = 128
     forward_batch_size: int = 8192
     epochs: int = 100
-    num_workers: int = 0
+    num_workers: int = 4
     batch_accum: int = 1
     optimizer: str = 'adam'
     lr: float = 0.0001
     weight_decay: float = 0
     momentum: float = 0
+    scheduler: str = 'none'
+    warmup_length: int = 0
     analyze_train_every: int = 1
     analyze_val_every: int = 1
     analyze_sample_size: int = 1
@@ -35,6 +39,8 @@ config.register('deep_learning', DeepLearningConfig)
 class DeepLearningModule(LightningModule):
     def __init__(self, cfg, model, device, logger, train_dataset=None, val_dataset=None, test_dataset=None):
         super().__init__()
+        self.scheduler_ = None
+        self.optimizer_ = None
         self.dataset = ddict(train=train_dataset, val=val_dataset,
                              test=test_dataset if test_dataset is not None else val_dataset)
         self.cfg = cfg
@@ -60,12 +66,19 @@ class DeepLearningModule(LightningModule):
     def test_dataloader(self):
         return self.forward_dataloader('test')
 
+    def get_ctx(self):
+        return ddict(epoch=self.current_epoch)#, lr=self.optimizer_.param_groups[0]['lr'])
+
     def forward(self, x):
-        out = self.model(x)
+        ctx = self.get_ctx()
+        out = self.model(x, ctx=ctx)
         return out
 
     def analyze(self, outputs, sample_inputs, sample_outputs, namespace):
-        pass
+        if hasattr(self.model, 'analyze'):
+            model_analysis = self.model.analyze(self.get_ctx())
+            for k, v in model_analysis.items():
+                self.logger_.experiment[f'training/{namespace}/model_analysis/{k}'].log(v)
 
     def training_step(self, batch, batch_idx, namespace='train'):
         raise NotImplementedError()
@@ -79,7 +92,7 @@ class DeepLearningModule(LightningModule):
         self.log(f'{namespace}/loss_epoch', loss)
 
         with torch.no_grad():
-
+            self.eval()
             if self.current_epoch % self.analyze_every[namespace] == 0:
 
                 if self.cfg.dl.analyze_sample_size > 0:
@@ -98,7 +111,7 @@ class DeepLearningModule(LightningModule):
                     sample_inputs = None
                     sample_outputs = None
 
-                self.analyze(outputs, sample_inputs, sample_outputs, namespace)
+        self.analyze(outputs, sample_inputs, sample_outputs, namespace)
 
     def validation_step(self, batch, batch_idx, namespace='val'):
         result = self.training_step(batch, batch_idx, namespace=namespace)
@@ -122,10 +135,30 @@ class DeepLearningModule(LightningModule):
                                           # max_iter=100,
                                           line_search_fn="strong_wolfe")
         elif self.cfg.dl.optimizer == 'sgd':
-            optimizer = torch.optim.SGD(self.parameters(), lr=self.cfg.dl.lr, weight_decay=self.cfg.dl.weight_decay, momentum=self.cfg.dl.momentum)
+            optimizer = torch.optim.SGD(self.parameters(), lr=self.cfg.dl.lr, weight_decay=self.cfg.dl.weight_decay,
+                                        momentum=self.cfg.dl.momentum)
         else:
             raise ValueError(f'Unknown optimizer {self.cfg.dl.optimizer}')
-        return optimizer
+
+        if self.cfg.dl.scheduler == 'none':
+            return optimizer
+        elif self.cfg.dl.scheduler == 'cosine':
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,
+                                                                   self.cfg.dl.epochs - self.cfg.dl.warmup_length)
+        elif self.cfg.dl.scheduler == 'cosine_warmup':
+            scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=
+                lambda epoch:
+                    (epoch + 1) / self.cfg.dl.warmup_length
+                    if epoch < self.cfg.dl.warmup_length
+                    else 0.5 * (1. + math.cos(math.pi * (epoch - self.cfg.dl.warmup_length)
+                                              / (self.cfg.dl.epochs - self.cfg.dl.warmup_length))))
+        else:
+            raise ValueError(f'Unknown scheduler {self.cfg.dl.scheduler}')
+
+
+        self.scheduler_ = scheduler
+        self.optimizer_ = optimizer
+        return [optimizer], [scheduler]
 
 
 def load_model_checkpoint(best_model_path, model):

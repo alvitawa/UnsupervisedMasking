@@ -1,0 +1,14 @@
+#!/bin/bash
+
+#SBATCH --job-name=CIFAR10_RESNET18
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=3
+#SBATCH --gres=gpu:1
+#SBATCH --time=48:00:00
+#SBATCH --mem=32000M
+#SBATCH --partition=gpu
+#SBATCH --output=out/slurm_%A.out
+
+source load.sh
+
+srun python3 main.py --multirun main.model=Resnet18_supermask "+models.supermask_convnet.sparsity=range(0.1,1.0,0.1)" dl.epochs=100 main.dataset=cifar10 dl.optimizer=sgd dl.lr=0.1 dl.momentum=0.9 dl.batch_size=256 dl.weight_decay=0.0005 dl.scheduler=cosine main.info='kaiming_normal' hydra/launcher=joblib hydra.launcher.n_jobs=3

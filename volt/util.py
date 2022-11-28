@@ -6,6 +6,21 @@ import torchvision
 from PIL import Image
 from matplotlib import pyplot as plt
 
+from torch import nn
+
+class LambdaModule(nn.Module):
+    def __init__(self, lambd, **kwargs):
+        super().__init__()
+        import types
+        assert type(lambd) is types.LambdaType
+        self.lambd = lambd
+        self.pars = list(kwargs.keys())
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+    def forward(self, x):
+        kwargs = {k: getattr(self, k) for k in self.pars}
+        return self.lambd(x, **kwargs)
 
 class UnNormalize(torchvision.transforms.Normalize):
     def __init__(self, mean, std, *args, **kwargs):
