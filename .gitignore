@@ -1,0 +1,11 @@
+.idea
+.git-backup
+venv
+data
+out
+__pycache__
+.neptune
+hidden-networks
+multirun
+outputs
+pgn
