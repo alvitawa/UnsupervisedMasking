@@ -30,7 +30,7 @@ class DeepLearningConfig:
     warmup_length: int = 0
     analyze_train_every: int = 1
     analyze_val_every: int = 1
-    analyze_sample_size: int = 1
+    analyze_sample_size: int = 2
 
 
 config.register('deep_learning', DeepLearningConfig)
@@ -92,7 +92,7 @@ class DeepLearningModule(LightningModule):
         self.log(f'{namespace}/loss_epoch', loss)
 
         with torch.no_grad():
-            self.eval()
+
             if self.current_epoch % self.analyze_every[namespace] == 0:
 
                 if self.cfg.dl.analyze_sample_size > 0:
