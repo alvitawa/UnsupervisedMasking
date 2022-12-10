@@ -1,14 +1,13 @@
 import copy
 import math
+from dataclasses import dataclass
 
 import numpy as np
 import torch
+from PIL import Image
 from matplotlib import pyplot as plt
 from torch import autograd, nn
 from torch.nn import ParameterList, ParameterDict
-
-from volt import util
-
 
 def traverse_leaves(root, fn, seen=None, child=None, depth=0):
     if seen is None:
@@ -225,7 +224,7 @@ class SubmaskedModel(torch.nn.Module):
                 plt.scatter(x, (np.array(y0) + np.array(y1)) / 2)
                 plt.xlabel('Depth')
                 plt.ylabel('Ratio')
-                plot = util.fig2img(fig)
+                plot = fig2img(fig)
                 plt.close(fig)
 
                 analysis['plot_{}'.format(slot)] = plot
@@ -246,6 +245,12 @@ class SubmaskedModel(torch.nn.Module):
         # for param, param_shell, mask in zip(self.model.parameters(), self.model_shell.parameters(), masks):
         if ctx is None:
             ctx = {}
+        # for name, param in self.model_shell.named_parameters():
+        #     variable = self.model_shell
+        #     for variable_name in name.split('.'):
+        #         variable = getattr(variable, variable_name)
+        #     print(variable.shape)
+        # import pdb; pdb.set_trace()
         for name, data, param_shell, scores, slot in self.masked_params:
             # Detach the gradients from the previous forward pass
             mask = GetSubnet.apply(scores, self.k(ctx), self.prune_criterion)
@@ -258,3 +263,13 @@ class SubmaskedModel(torch.nn.Module):
         # Now just forward through the model copy
         result = self.model_shell(*args, **kwargs)
         return result
+
+
+def fig2img(fig):
+    """Convert a Matplotlib figure to a PIL Image and return it"""
+    import io
+    buf = io.BytesIO()
+    fig.savefig(buf)
+    buf.seek(0)
+    img = Image.open(buf)
+    return img

@@ -1,0 +1,23 @@
+
+plot:
+  - variant_sparsity
+  - resnet_model_size
+
+
+variant_sparsity:
+  runs:
+    - SUB-210
+    - SUB-213
+    - SUB-214
+  frees:
+    - SUB-209
+    - SUB-208
+    - SUB-207
+
+resnet_model_size:
+  runs:
+    - SUB-215
+    - SUB-216
+    - SUB-217
+    - SUB-218
+

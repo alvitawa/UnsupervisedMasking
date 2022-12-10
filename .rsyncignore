@@ -1,3 +1,7 @@
+.idea
+outputs
+.git
+multirun
 venv
 __pycache__
 data
@@ -15,4 +19,4 @@ precomputed_data
 checkpoints
 hidden-networks
 pgn
-
+swav

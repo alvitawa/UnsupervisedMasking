@@ -21,7 +21,7 @@ from transformers import AutoModel, AutoProcessor
 
 import subnetworks.simple_mnist_example
 from subnetworks import submasking
-from volt.modules import classifier, embedder
+from volt.modules import classifier, ssl
 from volt.modules.deep_learning import load_model_checkpoint
 from volt.log import Task
 
@@ -67,6 +67,9 @@ class ModelClipConfig:
     code: str = "openai/clip-vit-base-patch32"
     submask: bool = False
     submask_scale: bool = False
+    submask_backbone: bool = True
+    submask_head: bool = True
+    freeze_backbone: bool = False
     scores_init: str = 'default_scores_init'
     module: str = 'prompt'
 
@@ -94,10 +97,30 @@ class ModelTimmConfig:
     prune_unit: str = 'epoch'
 
 
+@dataclass
+class ModelPretrainedConfig:
+    source: str = 'hub'
+    repo: str = 'facebookresearch/swav:main'
+    name: str = 'resnet50'
+    submask_scale: bool = True
+    head: str = 'train'
+    backbone: str = 'mask'
+    pretrained: bool = True
+    init_scores_mean: float = 0.01
+    init_scores_std: float = 0.0
+    prune_criterion: str = 'threshold'
+    prune_k: float = 0
+    prune_progressive: bool = False
+    prune_k_start: float = 0.9
+    prune_unit: str = 'epoch'
+    module: str = 'classifier'
+
+
 config.register('main', MainConfig)
 config.register('clip', ModelClipConfig, 'model')
 config.register('repro', ModelReproConfig, 'model')
 config.register('timm', ModelTimmConfig, 'model')
+config.register('pret', ModelPretrainedConfig, 'model')
 
 
 def summary(cfg):
@@ -162,6 +185,10 @@ def train(cfg, mvp=False):
         train_dataset, val_dataset, test_dataset = dataset.get_cifar10pgn(cfg)
         logger.experiment[f'global/data/train/labels'] = train_dataset.label_names
         logger.experiment[f'global/data/val/labels'] = val_dataset.label_names
+    elif cfg.main.dataset == 'flowers':
+        train_dataset, val_dataset, test_dataset = dataset.get_flowers(cfg)
+        logger.experiment[f'global/data/train/labels'] = train_dataset.label_names
+        logger.experiment[f'global/data/val/labels'] = val_dataset.label_names
     else:
         raise Exception(f"Unknown dataset: {cfg.main.dataset}")
 
@@ -209,6 +236,11 @@ def train(cfg, mvp=False):
     elif cfg.main.model == 'clip':
         code = cfg.model.clip.code
         clip = AutoModel.from_pretrained(code).to(device)
+        if cfg.model.clip.freeze_backbone:
+            for param in clip.parameters():
+                param.requires_grad = False
+            for param in clip.visual_projection.parameters():
+                param.requires_grad = True
         model = torch.nn.Sequential(OrderedDict([
             ('backbone', LambdaModule(lambda x, vision_model: vision_model(x, return_dict=False)[1],
                                       vision_model=clip.vision_model)),
@@ -220,21 +252,28 @@ def train(cfg, mvp=False):
             def par_sel(name, param):
                 if not param.requires_grad:
                     return 'freeze'
-                if 'k_proj' in name:
-                    r = ['mask', 'k_proj']
-                elif 'v_proj' in name:
-                    r = ['mask', 'v_proj']
-                elif 'q_proj' in name:
-                    r = ['mask', 'q_proj']
-                elif 'out_proj' in name:
-                    r = ['mask', 'out_proj']
-                elif 'mlp.fc1' in name:
-                    r = ['mask', 'mlp.fc1']
-                elif 'mlp.fc2' in name:
-                    r = ['mask', 'mlp.fc2']
-                elif 'projection' in name:
-                    r = ['mask', 'projection']
-                else:
+
+                r = None
+
+                if cfg.model.clip.submask_backbone:
+                    if 'k_proj' in name:
+                        r = ['mask', 'k_proj']
+                    elif 'v_proj' in name:
+                        r = ['mask', 'v_proj']
+                    elif 'q_proj' in name:
+                        r = ['mask', 'q_proj']
+                    elif 'out_proj' in name:
+                        r = ['mask', 'out_proj']
+                    elif 'mlp.fc1' in name:
+                        r = ['mask', 'mlp.fc1']
+                    elif 'mlp.fc2' in name:
+                        r = ['mask', 'mlp.fc2']
+
+                if cfg.model.clip.submask_head:
+                    if 'projection' in name:
+                        r = ['mask', 'projection']
+
+                if r is None:
                     return 'freeze'
 
                 if 'weight' in name:
@@ -281,6 +320,67 @@ def train(cfg, mvp=False):
                                               parameter_selection=parameter_selection).to(device)
         module = classifier.ClassifierModule(cfg, model, device, logger, train_dataset, val_dataset, test_dataset)
 
+    elif cfg.main.model == 'pret':
+        if cfg.model.pret.source == 'hub':
+            model = torch.hub.load(cfg.model.pret.repo, cfg.model.pret.name)
+            if cfg.model.pret.repo == 'facebookresearch/swav:main':
+                if cfg.model.pret.module == 'classifier':
+                    model.fc = torch.nn.Linear(model.fc.in_features, len(train_dataset.label_names))
+                assert model.fc.weight.requires_grad
+            elif cfg.model.pret.repo == 'facebookresearch/dino:main':
+                model.fc = torch.nn.Linear(2048, len(train_dataset.label_names))
+            else:
+                raise ValueError(f"Unknown repo {cfg.model.pret.repo}")
+        elif cfg.model.pret.source == 'timm':
+            raise NotImplementedError()
+        else:
+            raise ValueError(f"Unknown source {cfg.model.pret.source}")
+
+        # check with regex if it is one of the normal resnet models
+        if re.match(r"(dino_)?resnet\d+", cfg.model.pret.name):
+            def par_sel(name, param):
+                if not param.requires_grad:
+                    return 'freeze'
+                if 'conv' in name:
+                    return cfg.model.pret.backbone, 'conv'
+                if 'fc' in name:
+                    return cfg.model.pret.head, name
+                return 'freeze'
+        else:
+            weight_summary = ""
+            for name, param in model.named_parameters():
+                row = f"{name}: {param.shape}, {param.numel()} elements, requires_grad={param.requires_grad}\n"
+                weight_summary += row
+                logger.experiment[f'global/weight_summary'].log(row)
+            print(weight_summary)
+            raise ValueError(f"Unknown model {cfg.model.pret.name}")
+
+        assert cfg.model.pret.prune_unit == 'epoch'
+
+        if cfg.model.pret.prune_progressive and cfg.model.pret.prune_criterion == 'topk':
+            k = lambda ctx: cfg.model.pret.prune_k_start - (
+                        ctx.epoch / cfg.dl.epochs * (cfg.model.pret.prune_k_start - cfg.model.pret.prune_k))
+        elif cfg.model.pret.prune_progressive and cfg.model.pret.prune_criterion == 'threshold':
+            k = lambda ctx: ctx.epoch / cfg.dl.epochs * cfg.model.pret.prune_k
+        elif not cfg.model.pret.prune_progressive:
+            k = lambda epoch: cfg.model.pret.prune_k
+        else:
+            raise NotImplementedError()
+
+        model.to(device)
+        test_input = torch.randn(2, 3, 224, 224).to(device)
+        model = submasking.SubmaskedModel(model, scale=cfg.model.pret.submask_scale, test_input=test_input,
+                                          parameter_selection=par_sel, k=k,
+                                          prune_criterion=cfg.model.pret.prune_criterion,
+                                          scores_init=submasking.normal_scores_init(cfg.model.pret.init_scores_mean,
+                                                                                    cfg.model.pret.init_scores_std)).to(
+            device)
+        if cfg.model.pret.module == 'classifier':
+            module = classifier.ClassifierModule(cfg, model, device, logger, train_dataset, val_dataset, test_dataset)
+        elif cfg.model.pret.module == 'swav':
+            module = ssl.SWAVModule(cfg, model, device, logger, train_dataset, val_dataset, test_dataset)
+        else:
+            raise ValueError(f"Unknown module {cfg.model.pret.module}")
     elif cfg.main.model == 'timm':
         model = timm.create_model(cfg.model.timm.name, pretrained=cfg.model.timm.pretrained,
                                   num_classes=len(train_dataset.label_names)).to(device)
@@ -358,8 +458,11 @@ def train(cfg, mvp=False):
 
         test_input = torch.randn(2, 3, 224, 224).to(device)
         model = submasking.SubmaskedModel(model, scale=cfg.model.timm.submask_scale, test_input=test_input,
-                                          parameter_selection=par_sel, k=k, prune_criterion=cfg.model.timm.prune_criterion,
-                                          scores_init=submasking.normal_scores_init(cfg.model.timm.init_scores_mean, cfg.model.timm.init_scores_std)).to(device)
+                                          parameter_selection=par_sel, k=k,
+                                          prune_criterion=cfg.model.timm.prune_criterion,
+                                          scores_init=submasking.normal_scores_init(cfg.model.timm.init_scores_mean,
+                                                                                    cfg.model.timm.init_scores_std)).to(
+            device)
         module = classifier.ClassifierModule(cfg, model, device, logger, train_dataset, val_dataset, test_dataset)
     else:
         raise Exception(f"Unknown model: {cfg.main.model}")

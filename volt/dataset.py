@@ -7,16 +7,9 @@ from torch.utils.data import Dataset
 from torchvision import datasets
 from torchvision.transforms import transforms
 
-
 import pgn
 from volt import util
-from volt.modules import classifier
 
-@dataclass
-class DataConfig:
-    data_root: str = '~/data'
-    batch_size: int = 128
-    num_workers: int = 4
 
 class SliceableDataset(Dataset):
     def __init__(self, dataset=None, slice=None):
@@ -50,6 +43,41 @@ class SliceableDataset(Dataset):
         return getattr(self.__dataset, attr)
 
 
+class ClassDataset(SliceableDataset):
+    def __init__(self, dataset, transform, inverse_transform, classes=None, labels=None, label_names=None):
+        super().__init__()
+        self.dataset = dataset
+        self.transform = transform
+        self.inverse_transform = inverse_transform
+
+        if classes is None:
+            assert labels is not None, 'Must provide either classes or labels and label_names'
+            assert label_names is not None, 'Must provide either classes or labels and label_names'
+
+            self.labels = labels
+            self.label_names = label_names
+
+            self.classes = {i: name for i, name in zip(self.labels, self.label_names)}
+        else:
+            assert self.classes is not None, 'Must provide either classes or labels and label_names'
+            self.classes = classes
+
+            items = sorted(self.classes.items(), key=lambda x: x[0])
+            self.labels = [i for i, _ in items]
+            self.label_names = [name for _, name in items]
+
+    def get_item(self, index):
+        image, label = self.dataset[index]
+        image_transformed = self.transform(image)
+        return image_transformed, label
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def untransform(self, x):
+        return self.inverse_transform(x)
+
+
 def get_mnist(cfg):
     train_dataset = datasets.MNIST(os.path.join(cfg.main.data_path, 'mnist'), train=True, download=True)
     val_dataset = datasets.MNIST(os.path.join(cfg.main.data_path, 'mnist'), train=False)
@@ -63,12 +91,13 @@ def get_mnist(cfg):
         transforms.ToPILImage()
     ])
 
-    train_dataset = classifier.ClassDataset(train_dataset, transform, untransform, labels=range(10),
-                                            label_names=train_dataset.classes)
-    val_dataset = classifier.ClassDataset(val_dataset, transform, untransform, labels=range(10),
-                                          label_names=val_dataset.classes)
+    train_dataset = ClassDataset(train_dataset, transform, untransform, labels=range(10),
+                                 label_names=train_dataset.classes)
+    val_dataset = ClassDataset(val_dataset, transform, untransform, labels=range(10),
+                               label_names=val_dataset.classes)
 
     return train_dataset, val_dataset, None
+
 
 # 32x32 resolution in accordance with the ramanujan et al paper
 def get_cifar10(cfg):
@@ -104,11 +133,12 @@ def get_cifar10(cfg):
         transforms.ToPILImage()
     ])
 
-    train_dataset = classifier.ClassDataset(train_dataset, train_transform, untransform, labels=range(10),
-                                            label_names=train_dataset.classes)
-    val_dataset = classifier.ClassDataset(val_dataset, val_transform, untransform, labels=range(10),
-                                          label_names=val_dataset.classes)
+    train_dataset = ClassDataset(train_dataset, train_transform, untransform, labels=range(10),
+                                 label_names=train_dataset.classes)
+    val_dataset = ClassDataset(val_dataset, val_transform, untransform, labels=range(10),
+                               label_names=val_dataset.classes)
     return train_dataset, val_dataset, None
+
 
 def pgn_get_dataset(cfg, dmodule):
     data_root = os.path.join(cfg.main.data_path)
@@ -126,14 +156,22 @@ def pgn_get_dataset(cfg, dmodule):
         transforms.ToPILImage()
     ])
 
-    train_dataset = classifier.ClassDataset(train_dataset, transform, untransform, labels=range(10), label_names=train_dataset.classes)
-    val_dataset = classifier.ClassDataset(val_dataset, transform, untransform, labels=range(10), label_names=val_dataset.classes)
+    classes = list(map(lambda x: x[0], sorted(list(train_dataset.class_to_idx.items()), key=lambda x: x[1])))
+    assert all([train_dataset.class_to_idx[c] == i for i, c in enumerate(classes)])
+    train_dataset = ClassDataset(train_dataset, transform, untransform, labels=range(len(classes)),
+                                 label_names=classes)
+    classes = list(map(lambda x: x[0], sorted(list(val_dataset.class_to_idx.items()), key=lambda x: x[1])))
+    assert all([val_dataset.class_to_idx[c] == i for i, c in enumerate(classes)])
+    val_dataset = ClassDataset(val_dataset, transform, untransform, labels=range(len(classes)),
+                               label_names=classes)
 
     return train_dataset, val_dataset, None
+
 
 # 224x224 resolution in accordance with most imagenet pretrained models
 def get_cifar10pgn(cfg):
     return pgn_get_dataset(cfg, pgn.datamodules.cifar10_datamodule.CIFAR10DataModule)
 
+
 def get_flowers(cfg):
-    return pgn_get_dataset(cfg, pgn.datamodules.flowers_datamodule.Flowers102DataModule)
+    return pgn_get_dataset(cfg, pgn.datamodules.flowers102_datamodule.Flowers102DataModule)

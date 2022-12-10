@@ -6,6 +6,7 @@ import torch
 from pytorch_lightning import LightningModule
 from torch.utils.data import DataLoader
 
+from subnetworks.submasking import SubmaskedModel
 from volt import log
 from volt.util import ddict
 
@@ -70,8 +71,11 @@ class DeepLearningModule(LightningModule):
         return ddict(epoch=self.current_epoch)#, lr=self.optimizer_.param_groups[0]['lr'])
 
     def forward(self, x):
-        ctx = self.get_ctx()
-        out = self.model(x, ctx=ctx)
+        if isinstance(self.model, SubmaskedModel):
+            ctx = self.get_ctx()
+            out = self.model(x, ctx=ctx)
+        else:
+            out = self.model(x)
         return out
 
     def analyze(self, outputs, sample_inputs, sample_outputs, namespace):

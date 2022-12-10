@@ -2,10 +2,6 @@ from dataclasses import dataclass
 
 import torch
 
-import torchvision
-from PIL import Image
-
-from volt.dataset import SliceableDataset
 from volt.modules.deep_learning import DeepLearningModule
 from volt import config, util
 
@@ -16,41 +12,6 @@ class ClassifierConfig:
 
 
 config.register('classifier', ClassifierConfig)
-
-
-class ClassDataset(SliceableDataset):
-    def __init__(self, dataset, transform, inverse_transform, classes=None, labels=None, label_names=None):
-        super().__init__()
-        self.dataset = dataset
-        self.transform = transform
-        self.inverse_transform = inverse_transform
-
-        if classes is None:
-            assert labels is not None, 'Must provide either classes or labels and label_names'
-            assert label_names is not None, 'Must provide either classes or labels and label_names'
-
-            self.labels = labels
-            self.label_names = label_names
-
-            self.classes = {i: name for i, name in zip(self.labels, self.label_names)}
-        else:
-            assert self.classes is not None, 'Must provide either classes or labels and label_names'
-            self.classes = classes
-
-            items = sorted(self.classes.items(), key=lambda x: x[0])
-            self.labels = [i for i, _ in items]
-            self.label_names = [name for _, name in items]
-
-    def get_item(self, index):
-        image, label = self.dataset[index]
-        image_transformed = self.transform(image)
-        return image_transformed, label
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def untransform(self, x):
-        return self.inverse_transform(x)
 
 
 class ClassifierModule(DeepLearningModule):

@@ -1,0 +1,6 @@
+README.md
+setup.py
+subnetworks.egg-info/PKG-INFO
+subnetworks.egg-info/SOURCES.txt
+subnetworks.egg-info/dependency_links.txt
+subnetworks.egg-info/top_level.txt

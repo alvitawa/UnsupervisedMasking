@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "subnetworks"
+version = "0.1.0"
+description = ""
+authors = ["Alfonso Taboada Warmerdam <avtwarmerdam@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+torch = "^1.13.0"
+numpy = "^1.23.5"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

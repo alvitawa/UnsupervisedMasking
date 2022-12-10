@@ -1,3 +1,23 @@
+@article{balMediumScaleDistributedSystem2016,
+  title = {A {{Medium-Scale Distributed System}} for {{Computer Science Research}}: {{Infrastructure}} for the {{Long Term}}},
+  shorttitle = {A {{Medium-Scale Distributed System}} for {{Computer Science Research}}},
+  author = {Bal, Henri and Epema, Dick and de Laat, Cees and van Nieuwpoort, Rob and Romein, John and Seinstra, Frank and Snoek, Cees and Wijshoff, Harry},
+  options = {useprefix=true},
+  date = {2016-05},
+  journaltitle = {Computer},
+  shortjournal = {Computer},
+  volume = {49},
+  number = {5},
+  pages = {54--63},
+  issn = {0018-9162},
+  doi = {10.1109/MC.2016.127},
+  url = {http://ieeexplore.ieee.org/document/7469992/},
+  urldate = {2022-12-01},
+  abstract = {The Distributed ASCI Supercomputer (DAS) is a Computer Science infrastructure designed by the Advanced School for Computing and Imaging (ASCI) for controlled experiments with parallel and distributed systems. We have set up five generations of DAS, each consisting of 4-6 clusters located at different Dutch universities and integrated into a single shared distributed system using an advanced wide-area network. DAS is unique in that it has been available for 18 years, but always was kept consistent with the current research agenda. Each generation was set up by a single organization and with one clear vision. The DAS systems therefore are homogeneous, consistent, and easy to maintain. The goal of this paper is to show the huge impact of such a persistent long-term investment in Computer Science infrastructure, including numerous major awards, top publications, over 100 Ph.D. theses, and highly fruitful collaborations with application domains.},
+  langid = {english},
+  file = {/home/ook/Zotero/storage/F5F7H36E/Bal et al. - 2016 - A Medium-Scale Distributed System for Computer Sci.pdf}
+}
+
 @misc{bousselhamEfficientSelfEnsembleSemantic2022,
   title = {Efficient {{Self-Ensemble}} for {{Semantic Segmentation}}},
   author = {Bousselham, Walid and Thibault, Guillaume and Pagano, Lucas and Machireddy, Archana and Gray, Joe and Chang, Young Hwan and Song, Xubo},
@@ -32,6 +52,24 @@
   archiveprefix = {arXiv},
   keywords = {Computer Science - Computer Vision and Pattern Recognition},
   file = {/home/ook/Zotero/storage/VA5PC4NE/Caron et al. - 2021 - Emerging Properties in Self-Supervised Vision Tran.pdf;/home/ook/Zotero/storage/JDL2AAIL/2104.html}
+}
+
+@misc{caronUnsupervisedLearningVisual2021,
+  title = {Unsupervised {{Learning}} of {{Visual Features}} by {{Contrasting Cluster Assignments}}},
+  author = {Caron, Mathilde and Misra, Ishan and Mairal, Julien and Goyal, Priya and Bojanowski, Piotr and Joulin, Armand},
+  date = {2021-01-08},
+  number = {arXiv:2006.09882},
+  eprint = {2006.09882},
+  eprinttype = {arxiv},
+  primaryclass = {cs},
+  publisher = {{arXiv}},
+  url = {http://arxiv.org/abs/2006.09882},
+  urldate = {2022-12-03},
+  abstract = {Unsupervised image representations have significantly reduced the gap with supervised pretraining, notably with the recent achievements of contrastive learning methods. These contrastive methods typically work online and rely on a large number of explicit pairwise feature comparisons, which is computationally challenging. In this paper, we propose an online algorithm, SwAV, that takes advantage of contrastive methods without requiring to compute pairwise comparisons. Specifically, our method simultaneously clusters the data while enforcing consistency between cluster assignments produced for different augmentations (or “views”) of the same image, instead of comparing features directly as in contrastive learning. Simply put, we use a “swapped” prediction mechanism where we predict the code of a view from the representation of another view. Our method can be trained with large and small batches and can scale to unlimited amounts of data. Compared to previous contrastive methods, our method is more memory efficient since it does not require a large memory bank or a special momentum network. In addition, we also propose a new data augmentation strategy, multi-crop, that uses a mix of views with different resolutions in place of two full-resolution views, without increasing the memory or compute requirements. We validate our findings by achieving 75.3\% top-1 accuracy on ImageNet with ResNet-50, as well as surpassing supervised pretraining on all the considered transfer tasks.},
+  archiveprefix = {arXiv},
+  langid = {english},
+  keywords = {Computer Science - Computer Vision and Pattern Recognition},
+  file = {/home/ook/Zotero/storage/7KVNJY5T/Caron et al. - 2021 - Unsupervised Learning of Visual Features by Contra.pdf}
 }
 
 @misc{courbariauxBinaryConnectTrainingDeep2016,
@@ -329,6 +367,25 @@
   archiveprefix = {arXiv},
   keywords = {Computer Science - Computer Vision and Pattern Recognition},
   file = {/home/ook/Zotero/storage/SLZ8BIAN/Mallya et al. - 2018 - Piggyback Adapting a Single Network to Multiple T.pdf;/home/ook/Zotero/storage/4MJ98JCD/1801.html}
+}
+
+@misc{muSLIPSelfsupervisionMeets2021,
+  title = {{{SLIP}}: {{Self-supervision}} Meets {{Language-Image Pre-training}}},
+  shorttitle = {{{SLIP}}},
+  author = {Mu, Norman and Kirillov, Alexander and Wagner, David and Xie, Saining},
+  date = {2021-12-23},
+  number = {arXiv:2112.12750},
+  eprint = {2112.12750},
+  eprinttype = {arxiv},
+  primaryclass = {cs},
+  publisher = {{arXiv}},
+  url = {http://arxiv.org/abs/2112.12750},
+  urldate = {2022-11-29},
+  abstract = {Recent work has shown that self-supervised pre-training leads to improvements over supervised learning on challenging visual recognition tasks. CLIP, an exciting new approach to learning with language supervision, demonstrates promising performance on a wide variety of benchmarks. In this work, we explore whether self-supervised learning can aid in the use of language supervision for visual representation learning. We introduce SLIP, a multi-task learning framework for combining self-supervised learning and CLIP pre-training. After pre-training with Vision Transformers, we thoroughly evaluate representation quality and compare performance to both CLIP and self-supervised learning under three distinct settings: zero-shot transfer, linear classification, and end-to-end finetuning. Across ImageNet and a battery of additional datasets, we find that SLIP improves accuracy by a large margin. We validate our results further with experiments on different model sizes, training schedules, and pre-training datasets. Our findings show that SLIP enjoys the best of both worlds: better performance than self-supervision (+8.1\% linear accuracy) and language supervision (+5.2\% zero-shot accuracy).},
+  archiveprefix = {arXiv},
+  langid = {english},
+  keywords = {Computer Science - Computer Vision and Pattern Recognition},
+  file = {/home/ook/Zotero/storage/N5KSKNYE/Mu et al. - 2021 - SLIP Self-supervision meets Language-Image Pre-tr.pdf}
 }
 
 @article{neklyudovStructuredBayesianPruning,

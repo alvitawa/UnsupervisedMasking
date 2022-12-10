@@ -1,7 +1,7 @@
-% arara: latex
+% arara: pdflatex: { shell: true }
 % arara: biber
-% arara: latex
-% arara: pdflatex
+% arara: pdflatex: { shell: true }
+% arara: pdflatex: { shell: true }
 \documentclass[12pt]{report}
 
 \usepackage{graphicx, color}
@@ -10,30 +10,29 @@
 \usepackage[a4paper,margin=2cm]{geometry}
 \usepackage[backend=biber]{biblatex}
 \usepackage{hyperref}
+\usepackage{csquotes}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\usepackage{tikz}
+
+%\usepgfplotslibrary{external}
+\pgfplotsset{compat = newest}
+%\tikzexternalize[prefix=tikz/]
 
 \addbibresource{bibentries.bib}
-
-
 
 \newcommand{\red}[1]{{\color{red}{#1}}}
 
 
-
 \begin{document}
 
+    \begin{titlepage}
 
 
+        \newcommand{\HRule}{\rule{\linewidth}{0.5mm}} % Defines a new command for the horizontal lines, change thickness here
 
+        \center % Center everything on the page
 
-\begin{titlepage}
-
-
-
-\newcommand{\HRule}{\rule{\linewidth}{0.5mm}} % Defines a new command for the horizontal lines, change thickness here
-
-\center % Center everything on the page
-
- 
 
 %----------------------------------------------------------------------------------------
 
@@ -42,10 +41,9 @@
 %----------------------------------------------------------------------------------------
 
 
-\textsc{\Large MSc Artificial Intelligence}\\[0.2cm]
+        \textsc{\Large MSc Artificial Intelligence}\\[0.2cm]
 
-\textsc{\Large Master Thesis}\\[0.5cm] 
-
+        \textsc{\Large Master Thesis}\\[0.5cm]
 
 
 %----------------------------------------------------------------------------------------
@@ -56,13 +54,12 @@
 
 
 
-\HRule \\[0.4cm]
+        \HRule \\[0.4cm]
 
-{ \huge \bfseries \red{Your Title Here}}\\[0.4cm] % Title of your document
+        { \huge \bfseries \red{Your Title Here}}\\[0.4cm] % Title of your document
 
-\HRule \\[0.5cm]
+        \HRule \\[0.5cm]
 
- 
 
 %----------------------------------------------------------------------------------------
 
@@ -72,14 +69,11 @@
 
 
 
-by\\[0.2cm]
+        by\\[0.2cm]
 
-\textsc{\Large \red{Your Name}}\\[0.2cm] %you name
+        \textsc{\Large \red{Your Name}}\\[0.2cm] %you name
 
-\red{student number}\\[1cm]
-
-
-
+        \red{student number}\\[1cm]
 
 
 %----------------------------------------------------------------------------------------
@@ -90,14 +84,13 @@ by\\[0.2cm]
 
 
 
-{\Large \today}\\[1cm] % Date, change the \today to a set date if you want to be precise
+        {\Large \today}\\[1cm] % Date, change the \today to a set date if you want to be precise
 
 
 
-\red{Number of Credits}\\ %
+        \red{Number of Credits}\\ %
 
-\red{Period in which the research was carried out}\\[1cm]%
-
+        \red{Period in which the research was carried out}\\[1cm]%
 
 
 %----------------------------------------------------------------------------------------
@@ -106,38 +99,39 @@ by\\[0.2cm]
 
 %----------------------------------------------------------------------------------------
 
-\begin{minipage}[t]{0.4\textwidth}
+        \begin{minipage}[t]{0.4\textwidth}
 
-\begin{flushleft} \large
+            \begin{flushleft}
+                \large
 
-\emph{Supervisor:} \\
+                \emph{Supervisor:} \\
 
-\red{Dr A \textsc{Person} }% Supervisor's Name
+                \red{Dr A \textsc{Person} }% Supervisor's Name
 
-\end{flushleft}
+            \end{flushleft}
 
-\end{minipage}
+        \end{minipage}
 
-~
+        ~
 
-\begin{minipage}[t]{0.4\textwidth}
+        \begin{minipage}[t]{0.4\textwidth}
 
-\begin{flushright} \large
+            \begin{flushright}
+                \large
 
-\emph{Examiner:} \\
+                \emph{Examiner:} \\
 
-\red{Dr A  \textsc{Person}}\\
+                \red{Dr A  \textsc{Person}}\\
 
-\vspace{0.5cm}
+                \vspace{0.5cm}
 
-\emph{Second reader:} \\
+                \emph{Second reader:} \\
 
-\red{Dr A  \textsc{Person}}\\
+                \red{Dr A  \textsc{Person}}\\
 
-\end{flushright}
+            \end{flushright}
 
-\end{minipage}\\[2cm]
-
+        \end{minipage}\\[2cm]
 
 
 %----------------------------------------------------------------------------------------
@@ -149,83 +143,129 @@ by\\[0.2cm]
 
 
 
-\includegraphics[width=10cm]{uvalogo_regular_p_nl.eps}
+        \includegraphics[width=10cm]{uvalogo_regular_p_nl.eps}
 
- 
 
 %----------------------------------------------------------------------------------------
 
 
 
-\vfill % Fill the rest of the page with whitespace
+        \vfill % Fill the rest of the page with whitespace
 
-\end{titlepage}
+    \end{titlepage}
 
-\pagenumbering{roman}
+    \pagenumbering{roman}
 
-\tableofcontents
+    \tableofcontents
 
-\begin{abstract}
-\red{Provide a short overview and description of your thesis here.}
-\end{abstract}
+    \begin{abstract}
+        \red{Provide a short overview and description of your thesis here.}
+    \end{abstract}
 
-\pagenumbering{arabic}
-
-\chapter{Introduction}
-
-\red{This document provides an empty template for your thesis. Please keep the following things in mind when writing your thesis:
-\begin{itemize}
-\item The chapter organization of this template is a generic suggestion, please customize to your needs and vision.
-\item The guideline is to have a 40 page upper limit for the thesis, with additional optional pages for appendices if needed, for example to provide additional experimental results or mathematical details. Most theses do not end up with an appendix.
-\item For references, you are free to choose your own style. A standard style is included in this template, for example~\cite{lecun2015deep}.
-\item The official website of the thesis AI (https://student.uva.nl/ai/content/az/master-thesis-ai/master-thesis-ai-2020.html) contains all information regarding the procedures and details of the thesis process.
-\end{itemize}}
-
-\chapter{Related work}
+    \pagenumbering{arabic}
 
 
-\section{Pass-through trick}
-BinnaryConnect: Use the passthrough trick to learn binary (-1 or 1) neural networks~\cite{courbariauxBinaryConnectTrainingDeep2016, hubaraBinarizedNeuralNetworks}
+    \chapter{Introduction}
 
-Piggyback: Earliest paper I found (2018) which does the submasking method with the ‘pass-through’ trick. They actually use it for finetuning models like us.~\cite{mallyaPiggybackAdaptingSingle2018}
-
-NASpaper: NAS paper which, independently from the Piggyback paper, used similar tricks for performing neural architecture
-search~\cite{wortsmanDiscoveringNeuralWirings2019a}
-
-Ramanujan et al: Inspired by the NASPaper, they rediscovered the Piggyback method except applied it to training models from scratch and they also control the sparsity (piggy uses a threshold method).~\cite{ramanujanWhatHiddenRandomly2020}
-
-Movement Pruning: They prune models by applying ramanujan’s submasking and the Piggyback method in tandem with training the weights of the neural network (NLP). They use the term ‘hard’ movement pruning to refer to Ramanujan’s method (top k\%) and ‘soft’ pruning to refer to the Piggyback method (prune if score higher than threshold). They additionally enhance the pruning by adding a knowledge distillation loss as well.~\cite{sanhMovementPruningAdaptive}
-
-Block Movement Pruning: They do movement pruning with also distillation but by grouping ‘blocks’ of weights together into the same masking unit (so all weights in the block share a mask). Seems to work quite well.~\cite{lagunasBlockPruningFaster2021}
-
-Supsup: Very cool use of the submasking method: They make a random network learn thousands of different tasks, each task with it’s own supermask. They base it primarily on Ramanujan et al but also mention Piggyback and argue that their method is superior.~\cite{wortsmanSupermasksSuperposition}
-
-Packnet: Paper doing iterative pruning and retraining to teach a network new tasks ~\cite{mallyaPackNetAddingMultiple2018}
-
-Very recent paper that explores the best ways to fine-tune several models including resnets, vits, and convnexts.
-Their significant contribution is to freeze the the transformer embeddings in order to get the same performance with SGD as you can get with Adam. They get the highest CLIP-finentuned cifar-10 performance I have seen so far so it is a very good baseline to compare accuracies against~\cite{kumarHowFineTuneVision2022}
-
-\section{Self-supervision}
-
-Momentum contrast uses an embedding queue in combination with distinct key and query embedders such that the query embedder is trained through backpropagation on the current mini-batch (contrasted against all key embeddings in the queue) and the key embedder is updated by slowly adding the query embedder's parameters to it. Importantly, batch normalization needs to be disabled or shuffled.~\cite{heMomentumContrastUnsupervised2020}
-
-Dino is similar to momentum contrast except rather than using embeddings and a queue it just applies a cross-entropy loss between the teacher (key embedder) and student (query embedder) logits. It however needs to apply 'centering' and 'sharpening' to avoid collapse.~\cite{caronEmergingPropertiesSelfSupervised2021a}
-
-\chapter{Method}
+    \red{This document provides an empty template for your thesis. Please keep the following things in mind when writing your thesis:
+        \begin{itemize}
+            \item The chapter organization of this template is a generic suggestion, please customize to your needs and vision.
+            \item The guideline is to have a 40 page upper limit for the thesis, with additional optional pages for appendices if needed, for example to provide additional experimental results or mathematical details. Most theses do not end up with an appendix.
+            \item For references, you are free to choose your own style. A standard style is included in this template, for example~\cite{lecun2015deep}.
+            \item The official website of the thesis AI (https://student.uva.nl/ai/content/az/master-thesis-ai/master-thesis-ai-2020.html) contains all information regarding the procedures and details of the thesis process.
+        \end{itemize}}
 
 
-
-\chapter{Experiments}
-
+    \chapter{Related work}
 
 
-\chapter{Conclusions}
+    \section{Pass-through trick}
+    BinnaryConnect: Use the passthrough trick to learn binary (-1 or 1) neural networks~\cite{courbariauxBinaryConnectTrainingDeep2016, hubaraBinarizedNeuralNetworks}
+
+    Piggyback: Earliest paper I found (2018) which does the submasking method with the ‘pass-through’ trick. They actually use it for finetuning models like us.~\cite{mallyaPiggybackAdaptingSingle2018}
+
+    NASpaper: NAS paper which, independently from the Piggyback paper, used similar tricks for performing neural architecture
+    search~\cite{wortsmanDiscoveringNeuralWirings2019a}
+
+    Ramanujan et al: Inspired by the NASPaper, they rediscovered the Piggyback method except applied it to training models from scratch and they also control the sparsity (piggy uses a threshold method).~\cite{ramanujanWhatHiddenRandomly2020}
+
+    Movement Pruning: They prune models by applying ramanujan’s submasking and the Piggyback method in tandem with training the weights of the neural network (NLP). They use the term ‘hard’ movement pruning to refer to Ramanujan’s method (top k\%) and ‘soft’ pruning to refer to the Piggyback method (prune if score higher than threshold). They additionally enhance the pruning by adding a knowledge distillation loss as well.~\cite{sanhMovementPruningAdaptive}
+
+    Block Movement Pruning: They do movement pruning with also distillation but by grouping ‘blocks’ of weights together into the same masking unit (so all weights in the block share a mask). Seems to work quite well.~\cite{lagunasBlockPruningFaster2021}
+
+    Supsup: Very cool use of the submasking method: They make a random network learn thousands of different tasks, each task with it’s own supermask. They base it primarily on Ramanujan et al but also mention Piggyback and argue that their method is superior.~\cite{wortsmanSupermasksSuperposition}
+
+    Packnet: Paper doing iterative pruning and retraining to teach a network new tasks ~\cite{mallyaPackNetAddingMultiple2018}
+
+    Very recent paper that explores the best ways to fine-tune several models including resnets, vits, and convnexts.
+    Their significant contribution is to freeze the the transformer embeddings in order to get the same performance with SGD as you can get with Adam. They get the highest CLIP-finentuned cifar-10 performance I have seen so far so it is a very good baseline to compare accuracies against~\cite{kumarHowFineTuneVision2022}
 
 
-\appendix
-\chapter{Optional appendix}
+    \section{Self-supervision}
 
-\printbibliography
+    Momentum contrast uses an embedding queue in combination with distinct key and query embedders such that the query embedder is trained through backpropagation on the current mini-batch (contrasted against all key embeddings in the queue) and the key embedder is updated by slowly adding the query embedder's parameters to it. Importantly, batch normalization needs to be disabled or shuffled.~\cite{heMomentumContrastUnsupervised2020}
+
+    Dino is similar to momentum contrast except rather than using embeddings and a queue it just applies a cross-entropy loss between the teacher (key embedder) and student (query embedder) logits. It however needs to apply 'centering' and 'sharpening' to avoid collapse.~\cite{caronEmergingPropertiesSelfSupervised2021a}
+
+    SLIP is an improvement over CLIP which also makes use of self-supervision for pretraining.~\cite{muSLIPSelfsupervisionMeets2021}
+
+
+    \chapter{Method}
+
+
+    \chapter{Experiments}
+
+    \includegraphics[width=1.0\textwidth]{plots/variant_sparsity.pdf}
+
+%% https://latexdraw.com/plot-a-function-and-data-in-latex/
+%    \pgfplotstableread{plots/plot_data/variant_sparsity.csv}{\table}
+%
+%    \begin{tikzpicture}
+%        \begin{axis}[
+%            title={Accuracy as the prune rate linearly increases during trainig},
+%            xlabel={\% of active weights},
+%            ylabel={Accuracy},
+%            x dir=reverse,
+%            xmin = 0, xmax = 90,
+%            ymin = 0, ymax = 1,
+%            xtick distance = 10,
+%            ytick distance = 0.1,
+%            grid = both,
+%            minor tick num = 1,
+%            major grid style = {lightgray},
+%            minor grid style = {lightgray!25},
+%            width = \textwidth,
+%            height = 0.75\textwidth,
+%            legend cell align = {left},
+%            legend pos = south west
+%        ]
+%
+%            \addplot[blue] table [x expr= \thisrow{sparsity}*100, y = {resnet18}] {\table};
+%
+%            \addplot[red] table [x expr= \thisrow{sparsity}*100, y = {ssl_resnet18}] {\table};
+%
+%            \addplot[teal] table [x expr= \thisrow{sparsity}*100, y = {skresnet18}] {\table};
+%
+%            \legend{
+%                ResNet18,
+%                SSL-ResNet18,
+%                SK-ResNet18
+%            }
+%
+%        \end{axis}
+%
+%    \end{tikzpicture}
+
+
+    \chapter{Conclusions}
+
+
+    \appendix
+
+
+    \chapter{Optional appendix}
+
+    \printbibliography
 
 \end{document}
 
