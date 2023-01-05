@@ -8,5 +8,5 @@ defaults:
   - /model/repro@model.repro
   - /model/timm@model.timm
   - /model/pret@model.pret
-  # https://hydra.cc/docs/1.0/plugins/joblib_launcher/
+# https://hydra.cc/docs/1.0/plugins/joblib_launcher/
 #  - override hydra/launcher: joblib

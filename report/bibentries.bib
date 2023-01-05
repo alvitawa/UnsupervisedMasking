@@ -128,6 +128,23 @@
   file = {/home/ook/Zotero/storage/34UHRMXD/Gaier and Ha - 2019 - Weight Agnostic Neural Networks.pdf}
 }
 
+@inproceedings{gururanganDonStopPretraining2020,
+  title = {Don't {{Stop Pretraining}}: {{Adapt Language Models}} to {{Domains}} and {{Tasks}}},
+  shorttitle = {Don't {{Stop Pretraining}}},
+  booktitle = {Proceedings of the 58th {{Annual Meeting}} of the {{Association}} for {{Computational Linguistics}}},
+  author = {Gururangan, Suchin and Marasović, Ana and Swayamdipta, Swabha and Lo, Kyle and Beltagy, Iz and Downey, Doug and Smith, Noah A.},
+  date = {2020-07},
+  pages = {8342--8360},
+  publisher = {{Association for Computational Linguistics}},
+  location = {{Online}},
+  doi = {10.18653/v1/2020.acl-main.740},
+  url = {https://aclanthology.org/2020.acl-main.740},
+  urldate = {2022-12-14},
+  abstract = {Language models pretrained on text from a wide variety of sources form the foundation of today's NLP. In light of the success of these broad-coverage models, we investigate whether it is still helpful to tailor a pretrained model to the domain of a target task. We present a study across four domains (biomedical and computer science publications, news, and reviews) and eight classification tasks, showing that a second phase of pretraining in-domain (domain-adaptive pretraining) leads to performance gains, under both high- and low-resource settings. Moreover, adapting to the task's unlabeled data (task-adaptive pretraining) improves performance even after domain-adaptive pretraining. Finally, we show that adapting to a task corpus augmented using simple data selection strategies is an effective alternative, especially when resources for domain-adaptive pretraining might be unavailable. Overall, we consistently find that multi-phase adaptive pretraining offers large gains in task performance.},
+  eventtitle = {{{ACL}} 2020},
+  file = {/home/ook/Zotero/storage/PSVDHUH2/Gururangan et al. - 2020 - Don't Stop Pretraining Adapt Language Models to D.pdf}
+}
+
 @inproceedings{heMaskedAutoencodersAre2022,
   title = {Masked {{Autoencoders Are Scalable Vision Learners}}},
   author = {He, Kaiming and Chen, Xinlei and Xie, Saining and Li, Yanghao and Dollár, Piotr and Girshick, Ross},
@@ -177,6 +194,22 @@
   file = {/home/ook/Zotero/storage/5JX92JDV/Hoeﬂer et al. - Sparsity in Deep Learning Pruning and growth for .pdf}
 }
 
+@inproceedings{howardUniversalLanguageModel2018,
+  title = {Universal {{Language Model Fine-tuning}} for {{Text Classification}}},
+  booktitle = {Proceedings of the 56th {{Annual Meeting}} of the {{Association}} for {{Computational Linguistics}} ({{Volume}} 1: {{Long Papers}})},
+  author = {Howard, Jeremy and Ruder, Sebastian},
+  date = {2018-07},
+  pages = {328--339},
+  publisher = {{Association for Computational Linguistics}},
+  location = {{Melbourne, Australia}},
+  doi = {10.18653/v1/P18-1031},
+  url = {https://aclanthology.org/P18-1031},
+  urldate = {2022-12-14},
+  abstract = {Inductive transfer learning has greatly impacted computer vision, but existing approaches in NLP still require task-specific modifications and training from scratch. We propose Universal Language Model Fine-tuning (ULMFiT), an effective transfer learning method that can be applied to any task in NLP, and introduce techniques that are key for fine-tuning a language model. Our method significantly outperforms the state-of-the-art on six text classification tasks, reducing the error by 18-24\% on the majority of datasets. Furthermore, with only 100 labeled examples, it matches the performance of training from scratch on 100 times more data. We open-source our pretrained models and code.},
+  eventtitle = {{{ACL}} 2018},
+  file = {/home/ook/Zotero/storage/TLMRQ4XK/Howard and Ruder - 2018 - Universal Language Model Fine-tuning for Text Clas.pdf}
+}
+
 @article{hubaraBinarizedNeuralNetworks,
   title = {Binarized {{Neural Networks}}},
   author = {Hubara, Itay and Courbariaux, Matthieu and Soudry, Daniel and El-Yaniv, Ran and Bengio, Yoshua},
@@ -184,6 +217,24 @@
   abstract = {We introduce a method to train Binarized Neural Networks (BNNs) - neural networks with binary weights and activations at run-time. At train-time the binary weights and activations are used for computing the parameter gradients. During the forward pass, BNNs drastically reduce memory size and accesses, and replace most arithmetic operations with bit-wise operations, which is expected to substantially improve power-efficiency. To validate the effectiveness of BNNs, we conducted two sets of experiments on the Torch7 and Theano frameworks. On both, BNNs achieved nearly state-of-the-art results over the MNIST, CIFAR-10 and SVHN datasets. We also report our preliminary results on the challenging ImageNet dataset. Last but not least, we wrote a binary matrix multiplication GPU kernel with which it is possible to run our MNIST BNN 7 times faster than with an unoptimized GPU kernel, without suffering any loss in classification accuracy. The code for training and running our BNNs is available on-line.},
   langid = {english},
   file = {/home/ook/Zotero/storage/66KQP5DW/Hubara et al. - Binarized Neural Networks.pdf}
+}
+
+@misc{kondratyukWhenEnsemblingSmaller2020,
+  title = {When {{Ensembling Smaller Models}} Is {{More Efficient}} than {{Single Large Models}}},
+  author = {Kondratyuk, Dan and Tan, Mingxing and Brown, Matthew and Gong, Boqing},
+  date = {2020-05-01},
+  number = {arXiv:2005.00570},
+  eprint = {2005.00570},
+  eprinttype = {arxiv},
+  primaryclass = {cs, stat},
+  publisher = {{arXiv}},
+  url = {http://arxiv.org/abs/2005.00570},
+  urldate = {2022-12-14},
+  abstract = {Ensembling is a simple and popular technique for boosting evaluation performance by training multiple models (e.g., with different initializations) and aggregating their predictions. This approach is commonly reserved for the largest models, as it is commonly held that increasing the model size provides a more substantial reduction in error than ensembling smaller models. However, we show results from experiments on CIFAR-10 and ImageNet that ensembles can outperform single models with both higher accuracy and requiring fewer total FLOPs to compute, even when those individual models’ weights and hyperparameters are highly optimized. Furthermore, this gap in improvement widens as models become large. This presents an interesting observation that output diversity in ensembling can often be more efficient than training larger models, especially when the models approach the size of what their dataset can foster. Instead of using the common practice of tuning a single large model, one can use ensembles as a more flexible trade-off between a model’s inference speed and accuracy. This also potentially eases hardware design, e.g., an easier way to parallelize the model across multiple workers for real-time or distributed inference.},
+  archiveprefix = {arXiv},
+  langid = {english},
+  keywords = {Computer Science - Computer Vision and Pattern Recognition,Computer Science - Machine Learning,Statistics - Machine Learning},
+  file = {/home/ook/Zotero/storage/TQ7NQREM/Kondratyuk et al. - 2020 - When Ensembling Smaller Models is More Efficient t.pdf}
 }
 
 @unpublished{kumarFineTuningCanDistort2022,
@@ -301,6 +352,24 @@
   langid = {english},
   keywords = {prunetuning},
   file = {/home/ook/Zotero/storage/J4L5EGR9/Li et al. - Revisiting Random Channel Pruning for Neural Netwo.pdf}
+}
+
+@misc{liTernaryWeightNetworks2022,
+  title = {Ternary {{Weight Networks}}},
+  author = {Li, Fengfu and Liu, Bin and Wang, Xiaoxing and Zhang, Bo and Yan, Junchi},
+  date = {2022-11-20},
+  number = {arXiv:1605.04711},
+  eprint = {1605.04711},
+  eprinttype = {arxiv},
+  primaryclass = {cs},
+  publisher = {{arXiv}},
+  doi = {10.48550/arXiv.1605.04711},
+  url = {http://arxiv.org/abs/1605.04711},
+  urldate = {2022-12-16},
+  abstract = {We present a memory and computation efficient ternary weight networks (TWNs) - with weights constrained to +1, 0 and -1. The Euclidian distance between full (float or double) precision weights and the ternary weights along with a scaling factor is minimized in training stage. Besides, a threshold-based ternary function is optimized to get an approximated solution which can be fast and easily computed. TWNs have shown better expressive abilities than binary precision counterparts. Meanwhile, TWNs achieve up to 16\$\textbackslash times\$ model compression rate and need fewer multiplications compared with the float32 precision counterparts. Extensive experiments on MNIST, CIFAR-10, and ImageNet datasets show that the TWNs achieve much better result than the Binary-Weight-Networks (BWNs) and the classification performance on MNIST and CIFAR-10 is very close to the full precision networks. We also verify our method on object detection task and show that TWNs significantly outperforms BWN by more than 10\textbackslash\% mAP on PASCAL VOC dataset. The pytorch version of source code is available at: https://github.com/Thinklab-SJTU/twns.},
+  archiveprefix = {arXiv},
+  keywords = {Computer Science - Computer Vision and Pattern Recognition},
+  file = {/home/ook/Zotero/storage/2STXWDEV/Li et al. - 2022 - Ternary Weight Networks.pdf;/home/ook/Zotero/storage/GQCPN4U9/1605.html}
 }
 
 @unpublished{loedemanPromptGenerationNetworks2022,
@@ -520,4 +589,22 @@
   langid = {english},
   keywords = {Computer Science - Computation and Language,Computer Science - Machine Learning},
   file = {/home/ook/Zotero/storage/ZX54LJ8I/Xu et al. - 2020 - Improving BERT Fine-Tuning via Self-Ensemble and S.pdf}
+}
+
+@misc{zhuTrainedTernaryQuantization2017,
+  title = {Trained {{Ternary Quantization}}},
+  author = {Zhu, Chenzhuo and Han, Song and Mao, Huizi and Dally, William J.},
+  date = {2017-02-23},
+  number = {arXiv:1612.01064},
+  eprint = {1612.01064},
+  eprinttype = {arxiv},
+  primaryclass = {cs},
+  publisher = {{arXiv}},
+  doi = {10.48550/arXiv.1612.01064},
+  url = {http://arxiv.org/abs/1612.01064},
+  urldate = {2022-12-16},
+  abstract = {Deep neural networks are widely used in machine learning applications. However, the deployment of large neural networks models can be difficult to deploy on mobile devices with limited power budgets. To solve this problem, we propose Trained Ternary Quantization (TTQ), a method that can reduce the precision of weights in neural networks to ternary values. This method has very little accuracy degradation and can even improve the accuracy of some models (32, 44, 56-layer ResNet) on CIFAR-10 and AlexNet on ImageNet. And our AlexNet model is trained from scratch, which means it's as easy as to train normal full precision model. We highlight our trained quantization method that can learn both ternary values and ternary assignment. During inference, only ternary values (2-bit weights) and scaling factors are needed, therefore our models are nearly 16x smaller than full-precision models. Our ternary models can also be viewed as sparse binary weight networks, which can potentially be accelerated with custom circuit. Experiments on CIFAR-10 show that the ternary models obtained by trained quantization method outperform full-precision models of ResNet-32,44,56 by 0.04\%, 0.16\%, 0.36\%, respectively. On ImageNet, our model outperforms full-precision AlexNet model by 0.3\% of Top-1 accuracy and outperforms previous ternary models by 3\%.},
+  archiveprefix = {arXiv},
+  keywords = {Computer Science - Machine Learning},
+  file = {/home/ook/Zotero/storage/YQAKNCPK/Zhu et al. - 2017 - Trained Ternary Quantization.pdf;/home/ook/Zotero/storage/XD89SR23/1612.html}
 }

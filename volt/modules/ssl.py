@@ -1,61 +1,12 @@
 from dataclasses import dataclass
-from typing import Iterable
 
 import numpy as np
 import torch
 from torch import nn
-from torch.utils.data import DataLoader, Dataset
-from torchvision.transforms import transforms
 
 from volt import config
 from volt.modules.classifier import ClassifierModule
-from volt.modules.deep_learning import DeepLearningModule
 
-
-class MultiCropDataset(Dataset):
-    def __init__(
-        self,
-        dataset,
-        size_crops,
-        nmb_crops,
-        min_scale_crops,
-        max_scale_crops,
-        return_index=False,
-    ):
-        assert len(size_crops) == len(nmb_crops)
-        assert len(min_scale_crops) == len(nmb_crops)
-        assert len(max_scale_crops) == len(nmb_crops)
-        self.return_index = return_index
-
-        self.dataset = dataset
-
-        # color_transform = [get_color_distortion(), PILRandomGaussianBlur()]
-        mean = [0.485, 0.456, 0.406]
-        std = [0.228, 0.224, 0.225]
-        trans = []
-        for i in range(len(size_crops)):
-            randomresizedcrop = transforms.RandomResizedCrop(
-                size_crops[i],
-                scale=(min_scale_crops[i], max_scale_crops[i]),
-            )
-            trans.extend([transforms.Compose([
-                randomresizedcrop,
-                # transforms.RandomHorizontalFlip(p=0.5),
-                # transforms.Compose(color_transform),
-                # transforms.ToTensor(),
-                transforms.Normalize(mean=mean, std=std)])
-            ] * nmb_crops[i])
-        self.trans = trans
-
-    def __getitem__(self, index):
-        image, label = self.dataset[index]
-        multi_crops = list(map(lambda trans: trans(image), self.trans))
-        if self.return_index:
-            return index, multi_crops, label
-        return multi_crops, label
-
-    def __len__(self):
-        return len(self.dataset)
 
 # class MultiPrototypes(nn.Module):
 #     def __init__(self, output_dim, nmb_prototypes):
@@ -82,7 +33,7 @@ class SWAVConfig:
     epoch_queue_starts: int = 15
     crops_for_assign: list = (0, 1)
     temperature: float = 0.1
-    freeze_prototypes_niters: int = 5005
+    freeze_prototypes_niters: int = 5005 #313
     epsilon: float = 0.05
     sinkhorn_iterations: int = 3
 
@@ -90,15 +41,15 @@ class SWAVConfig:
 
 config.register('swav', SWAVConfig)
 
+# knn monitor as in InstDisc https://arxiv.org/abs/1805.01978
+# implementation follows http://github.com/zhirongw/lemniscate.pytorch and https://github.com/leftthomas/SimCLR
 
-class SWAVModule(DeepLearningModule):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class SWAVModule(ClassifierModule):
+    def __init__(self, fc_in_features, *args, **kwargs):
+        super().__init__(fc_in_features, *args, **kwargs)
 
-        self.multicrop_dataset = {namespace: MultiCropDataset(self.dataset[namespace], self.cfg.swav.size_crops,
-                                                              self.cfg.swav.nmb_crops, self.cfg.swav.min_scale_crops,
-                                                              self.cfg.swav.max_scale_crops, return_index=True)
-                                  for namespace in self.dataset.keys()}
+        # assert self.cfg.cls.loss == ''
+        # assert self.cfg.cls.fc == ''
 
         # prototype layer
         self.prototypes = None
@@ -112,9 +63,13 @@ class SWAVModule(DeepLearningModule):
         # the queue needs to be divisible by the batch size
         self.cfg.swav.queue_length -= self.cfg.swav.queue_length % (self.cfg.dl.batch_size * 1)
 
-    def dataloader(self, namespace, shuffle):
-        return DataLoader(self.multicrop_dataset[namespace], batch_size=self.cfg.dl.batch_size, shuffle=shuffle,
-                          num_workers=self.cfg.dl.num_workers)
+        self.use_the_queue = False
+
+        self.fc = nn.Linear(fc_in_features, self.cfg.swav.feat_dim)
+
+    # def dataloader(self, namespace, shuffle):
+    #     return DataLoader(self.multicrop_dataset[namespace], batch_size=self.cfg.dl.batch_size, shuffle=shuffle,
+    #                       num_workers=self.cfg.dl.num_workers)
 
     def on_train_epoch_start(self) -> None:
         if self.cfg.swav.queue_length > 0 and self.current_epoch >= self.cfg.swav.epoch_queue_starts and self.queue is None:
@@ -143,6 +98,7 @@ class SWAVModule(DeepLearningModule):
         outs = []
         for end_idx in idx_crops:
             _out = self.model(torch.cat(multi_crops[start_idx: end_idx]).to(self.device))
+            _out = self.fc(_out)
             outs.append(_out)
             # if start_idx == 0:
             #     output = _out
@@ -150,7 +106,7 @@ class SWAVModule(DeepLearningModule):
             #     output = torch.cat((output, _out))
             start_idx = end_idx
         output = torch.cat(outs)
-        embedding = output
+        embedding = nn.functional.normalize(output, dim=1, p=2)
 
         # embedding = self.model(multi_crops)
         output = self.prototypes(embedding)
@@ -165,8 +121,8 @@ class SWAVModule(DeepLearningModule):
 
                 # time to use the queue
                 if self.queue is not None:
-                    if use_the_queue or not torch.all(self.queue[i, -1, :] == 0):
-                        use_the_queue = True
+                    if self.use_the_queue or not torch.all(self.queue[i, -1, :] == 0):
+                        self.use_the_queue = True
                         out = torch.cat((torch.mm(
                             self.queue[i],
                             self.prototypes.weight.t()
@@ -187,8 +143,29 @@ class SWAVModule(DeepLearningModule):
 
         loss = loss / len(self.cfg.swav.crops_for_assign)
 
+        # import pdb; pdb.set_trace()
         self.log(f'{namespace}/loss', loss)
-        return {'loss': loss, 'target': _label}
+        r = {'loss': loss, 'target': _label}
+        if namespace == 'val':
+            r['embedding'] = embedding.view(sum(self.cfg.swav.nmb_crops), bs, self.cfg.swav.feat_dim).mean(dim=0)
+        return r
+
+    # def analyze(self, outputs, sample_inputs, sample_outputs, namespace):
+    #     super().analyze(outputs, sample_inputs, sample_outputs, namespace)
+    #     if namespace == 'val':
+    #         feature_bank = outputs['embedding'].T.contiguous()
+    #         feature_labels = outputs['target']
+    #         classes = len(self.dataset['val'].label_names)
+    #         if self.cfg.main.in_mvp:
+    #             knn_k = 4
+    #         else:
+    #             knn_k = 200
+    #             assert len(feature_bank) // classes / 2 < knn_k, 'knn_k is too large'
+    #         pred_labels = knn_predict(outputs['embedding'], feature_bank, feature_labels, classes, knn_k, 0.1)
+    #         accuracy = (pred_labels[:, 0] == feature_labels).float().sum().item() / outputs['embedding'].shape[0]
+    #         self.logger_.experiment[f'training/{namespace}/knn_accuracy'].log(accuracy)
+
+
 
     def on_after_backward(self):
         if self.global_step < self.cfg.swav.freeze_prototypes_niters:

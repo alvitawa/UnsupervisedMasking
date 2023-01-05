@@ -1,3 +1,4 @@
+import os
 import pdb
 import sys
 import traceback
@@ -54,6 +55,10 @@ class XTrace:
         self.blacklist = blacklist
 
     def __call__(self, *args, **kwargs):
+        # Do nothing if the env variable XTRACE is set to 0
+        if os.getenv('XTRACE', '1') == '0':
+            return self.func(*args, **kwargs)
+
         try:
             return self.func(*args, **kwargs)
         except Exception as e:

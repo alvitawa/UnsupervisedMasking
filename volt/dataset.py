@@ -1,13 +1,18 @@
 import os
+import random
 from dataclasses import dataclass
 
+import numpy as np
 import torch
 import torchvision
+from PIL import ImageFilter
+from torch import nn
 from torch.utils.data import Dataset
 from torchvision import datasets
 from torchvision.transforms import transforms
 
 import pgn
+from pgn import datamodules
 from volt import util
 
 
@@ -175,3 +180,120 @@ def get_cifar10pgn(cfg):
 
 def get_flowers(cfg):
     return pgn_get_dataset(cfg, pgn.datamodules.flowers102_datamodule.Flowers102DataModule)
+
+
+class MultiCropDataset(SliceableDataset):
+    def __init__(
+            self,
+            dataset,
+            size_crops,
+            nmb_crops,
+            min_scale_crops,
+            max_scale_crops,
+            return_index=True,
+    ):
+        super().__init__()
+        assert len(size_crops) == len(nmb_crops)
+        assert len(min_scale_crops) == len(nmb_crops)
+        assert len(max_scale_crops) == len(nmb_crops)
+        self.return_index = return_index
+
+        self.dataset = dataset
+
+        color_transform = [get_color_distortion(), PILRandomGaussianBlur()]
+        mean = [0.485, 0.456, 0.406]
+        std = [0.228, 0.224, 0.225]
+        trans = []
+        for i in range(len(size_crops)):
+            randomresizedcrop = transforms.RandomResizedCrop(
+                size_crops[i],
+                scale=(min_scale_crops[i], max_scale_crops[i]),
+            )
+            trans.extend([transforms.Compose([
+                randomresizedcrop,
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.Compose(color_transform),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=mean, std=std)])
+                         ] * nmb_crops[i])
+        self.trans = trans
+
+        self.untransform = transforms.Compose([
+            util.UnNormalize(mean=mean, std=std),
+            transforms.ToPILImage()
+        ])
+        self.labels = self.dataset.labels
+        self.label_names = self.dataset.label_names
+
+        self.classes = self.dataset.classes
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def get_item(self, index):
+        image, label = self.dataset[index]
+        multi_crops = list(map(lambda trans: trans(image), self.trans))
+        if self.return_index:
+            return index, multi_crops, label
+        return multi_crops, label
+
+    def untransform(self, x):
+        return self.untransform(x)
+
+
+class PILRandomGaussianBlur(object):
+    """
+    Apply Gaussian Blur to the PIL image. Take the radius and probability of
+    application as the parameter.
+    This transform was used in SimCLR - https://arxiv.org/abs/2002.05709
+    """
+
+    def __init__(self, p=0.5, radius_min=0.1, radius_max=2.):
+        self.prob = p
+        self.radius_min = radius_min
+        self.radius_max = radius_max
+
+    def __call__(self, img):
+        do_it = np.random.rand() <= self.prob
+        if not do_it:
+            return img
+
+        return img.filter(
+            ImageFilter.GaussianBlur(
+                radius=random.uniform(self.radius_min, self.radius_max)
+            )
+        )
+
+
+def get_color_distortion(s=1.0):
+    # s is the strength of color distortion.
+    color_jitter = transforms.ColorJitter(0.8 * s, 0.8 * s, 0.8 * s, 0.2 * s)
+    rnd_color_jitter = transforms.RandomApply([color_jitter], p=0.8)
+    rnd_gray = transforms.RandomGrayscale(p=0.2)
+    color_distort = transforms.Compose([rnd_color_jitter, rnd_gray])
+    return color_distort
+
+
+def get_multicrop_dataset(cfg):
+    dataset_name = cfg.main.dataset
+    if dataset_name == 'multicrop_cifar10':
+        train_dataset = torchvision.datasets.CIFAR10(
+            root=cfg.main.data_path, train=True, download=True
+        )
+        val_dataset = torchvision.datasets.CIFAR10(
+            root=cfg.main.data_path, train=False, download=True
+        )
+
+        train_dataset = ClassDataset(train_dataset, nn.Identity(), nn.Identity(), labels=range(10),
+                                     label_names=train_dataset.classes)
+        val_dataset = ClassDataset(val_dataset, nn.Identity(), nn.Identity(), labels=range(10),
+                                   label_names=val_dataset.classes)
+    else:
+        raise NotImplementedError()
+
+    train_dataset_mc = MultiCropDataset(train_dataset, cfg.swav.size_crops, cfg.swav.nmb_crops,
+                                        cfg.swav.min_scale_crops, cfg.swav.max_scale_crops)
+    val_dataset_mc = MultiCropDataset(val_dataset, cfg.swav.size_crops, cfg.swav.nmb_crops, cfg.swav.min_scale_crops,
+                                      cfg.swav.max_scale_crops)
+
+    return train_dataset_mc, val_dataset_mc, None

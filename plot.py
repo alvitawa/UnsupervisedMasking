@@ -60,6 +60,21 @@ def resnet_model_size(cfg):
     df.to_csv(PLOT_DATA_PATH + "resnet_model_size.csv", sep="\t", index=False)
     os.system("cd report/plots && arara resnet_model_size.tex && cd ../..")
 
+    for csr in cfg.resnet_model_size.constrained_sparsity_runs:
+        model_name = csr.model
+        accs = []
+        sparsities = []
+        for run in csr.runs:
+            run = neptune.init_run(with_id=run)
+            acc = run["training/val/accuracy"].fetch_values()['value'].iloc[-1]
+            sparsity = run["training/val/model_analysis/prune_k"].fetch_values()['value'].iloc[-1]
+            accs.append(acc)
+            sparsities.append(sparsity)
+        df = pd.DataFrame({"sparsity": sparsities, "acc": accs})
+        df.sort_values(by="sparsity", inplace=True)
+        df.to_csv(PLOT_DATA_PATH + f"constrained_sparsity_{model_name}.csv", sep="\t", index=False)
+
+
 
 @hydra.main(version_base=None, config_path="conf", config_name="plotting")
 def main(cfg: DictConfig):

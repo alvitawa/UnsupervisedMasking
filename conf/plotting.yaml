@@ -1,6 +1,6 @@
 
 plot:
-  - variant_sparsity
+#  - variant_sparsity
   - resnet_model_size
 
 
@@ -20,4 +20,15 @@ resnet_model_size:
     - SUB-216
     - SUB-217
     - SUB-218
+  constrained_sparsity_runs:
+    -
+      model: resnet18
+      runs:
+        - SUB-300
+        - SUB-299
+        - SUB-298
+        - SUB-295
+        - SUB-294
+        - SUB-293
+        - SUB-292
 

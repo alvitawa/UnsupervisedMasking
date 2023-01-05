@@ -4,3 +4,7 @@ matplotlib
 neptune-client
 hydra-core
 pytorch_lightning
+timm
+transformers
+joblib
+hydra-joblib-launcher

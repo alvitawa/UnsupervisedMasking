@@ -4,13 +4,18 @@ case "$USER" in
 	awarmerdam*)
 		module purge
 
-		module load 2021
-		module load Anaconda3/2021.05
+		module load 2022
+		module load Anaconda3/2022.05
 
-		source activate img
+#		source activate img
 
 		source keys.sh
 	;;
+  ataboada*)
+    module purge
+
+    module add cuda91/toolkit/9.1.85
+  ;;
 	*)
 		source keys.sh
 		source venv/bin/activate

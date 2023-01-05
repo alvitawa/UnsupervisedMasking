@@ -2,16 +2,20 @@ import copy
 import getpass
 import json
 import os
+import random
 import re
 import sys
 from collections import OrderedDict
 from dataclasses import dataclass
+from pathlib import Path
 
+import numpy as np
 import timm
 import torch
 
 import hydra
 import torchvision
+from neptune.new.types import File
 from pytorch_lightning.callbacks import ModelSummary
 from pytorch_lightning.utilities import model_summary
 from torch import nn
@@ -22,7 +26,7 @@ from transformers import AutoModel, AutoProcessor
 import subnetworks.simple_mnist_example
 from subnetworks import submasking
 from volt.modules import classifier, ssl
-from volt.modules.deep_learning import load_model_checkpoint
+from volt.modules.deep_learning import load_model_checkpoint, DeepLearningModule
 from volt.log import Task
 
 from pytorch_lightning.loggers import NeptuneLogger
@@ -60,6 +64,12 @@ class MainConfig:
     data_path: str = 'data'
     checkpoint_path: str = 'data/models/checkpoints'
     save_as: str = ''
+    in_mvp: bool = False
+    verbose: bool = True
+    logging_mode: str = 'async'
+    fix_seed: bool = False
+    find_lr: bool = False
+    probe: bool = False
 
 
 @dataclass
@@ -99,21 +109,28 @@ class ModelTimmConfig:
 
 @dataclass
 class ModelPretrainedConfig:
+    model_checkpoint: str = ''
     source: str = 'hub'
     repo: str = 'facebookresearch/swav:main'
     name: str = 'resnet50'
     submask_scale: bool = True
     head: str = 'train'
     backbone: str = 'mask'
-    pretrained: bool = True
+    pretrained_head: bool = False
+    pretrained_backbone: bool = True
+    head_type: str = 'linear'
+    head_init: str = 'kaiming_uniform'
     init_scores_mean: float = 0.01
     init_scores_std: float = 0.0
+    init_scores_magnitude: bool = False
+    init_scores_shuffle: bool = False
     prune_criterion: str = 'threshold'
     prune_k: float = 0
     prune_progressive: bool = False
     prune_k_start: float = 0.9
     prune_unit: str = 'epoch'
     module: str = 'classifier'
+    shell_mode: str = 'copy'
 
 
 config.register('main', MainConfig)
@@ -138,6 +155,11 @@ def log_config(cfg, logger, base='global/params/'):
 def train(cfg, mvp=False):
     device = "cuda" if torch.cuda.is_available() and not cfg.main.force_cpu else "cpu"
 
+    if cfg.main.fix_seed:
+        torch.manual_seed(0)
+        random.seed(0)
+        np.random.seed(0)
+
     if mvp:
         cfg = copy.deepcopy(cfg)
         cfg.dl.batch_size = 5
@@ -147,7 +169,7 @@ def train(cfg, mvp=False):
         # https://docs.neptune.ai/api/neptune/#init_run
         logging_mode = 'debug'
     else:
-        logging_mode = 'async'
+        logging_mode = cfg.main.logging_mode
 
     # Api key and proj name in env. NEPTUNE_API_TOKEN and NEPTUNE_PROJECT
     run = neptune.init_run(tags=[], with_id=cfg.main.run if cfg.main.run != '' else None, mode=logging_mode,
@@ -189,6 +211,12 @@ def train(cfg, mvp=False):
         train_dataset, val_dataset, test_dataset = dataset.get_flowers(cfg)
         logger.experiment[f'global/data/train/labels'] = train_dataset.label_names
         logger.experiment[f'global/data/val/labels'] = val_dataset.label_names
+    elif cfg.main.dataset == 'cifar100':
+        train_dataset, val_dataset, test_dataset = dataset.pgn_get_dataset(cfg, pgn.datamodules.cifar100_datamodule.CIFAR100DataModule)
+        logger.experiment[f'global/data/train/labels'] = train_dataset.label_names
+        logger.experiment[f'global/data/val/labels'] = val_dataset.label_names
+    elif cfg.main.dataset.startswith('multicrop_'):
+        train_dataset, val_dataset, test_dataset = dataset.get_multicrop_dataset(cfg)
     else:
         raise Exception(f"Unknown dataset: {cfg.main.dataset}")
 
@@ -324,17 +352,43 @@ def train(cfg, mvp=False):
         if cfg.model.pret.source == 'hub':
             model = torch.hub.load(cfg.model.pret.repo, cfg.model.pret.name)
             if cfg.model.pret.repo == 'facebookresearch/swav:main':
-                if cfg.model.pret.module == 'classifier':
-                    model.fc = torch.nn.Linear(model.fc.in_features, len(train_dataset.label_names))
-                assert model.fc.weight.requires_grad
+                # if cfg.model.pret.module == 'classifier':
+                #     model.fc = torch.nn.Linear(model.fc.in_features, len(train_dataset.label_names))
+                # assert model.fc.weight.requires_grad
+                fc_name = 'fc'
+                fc_in_features = model.fc.in_features
             elif cfg.model.pret.repo == 'facebookresearch/dino:main':
-                model.fc = torch.nn.Linear(2048, len(train_dataset.label_names))
+                # model.fc = torch.nn.Linear(2048, len(train_dataset.label_names))
+                assert not cfg.model.pret.pretrained_head
+                fc_name = 'fc'
+                fc_in_features = 2048
             else:
                 raise ValueError(f"Unknown repo {cfg.model.pret.repo}")
         elif cfg.model.pret.source == 'timm':
-            raise NotImplementedError()
+            model = timm.create_model(cfg.model.pret.name, pretrained=cfg.model.pret.pretrained_backbone)
+            fc_name = 'fc'
+            fc_in_features = model.fc.in_features
+            # if cfg.model.pret.module == 'classifier':
+            #     model = timm.create_model(cfg.model.pret.name, pretrained=True,
+            #                               num_classes=len(train_dataset.label_names))
+            # else:
+            #     model = timm.create_model(cfg.model.pret.name, pretrained=True)
         else:
             raise ValueError(f"Unknown source {cfg.model.pret.source}")
+
+        if not cfg.model.pret.pretrained_head:
+            if cfg.model.pret.head_type == 'linear':
+                assert cfg.model.pret.head_init == 'kaiming_uniform'
+                head = torch.nn.Linear(fc_in_features, len(train_dataset.label_names))
+            elif cfg.model.pret.head_type == 'dual':
+                # sum of 2 heads, one with all ones and other with all -1, is full-featured when trained with masking
+                raise NotImplementedError()
+            elif cfg.model.pret.head_type == 'identity':
+                head = torch.nn.Identity()
+            else:
+                raise ValueError(f"Unknown head type {cfg.model.pret.head_type}")
+
+            model.__setattr__(fc_name, head)
 
         # check with regex if it is one of the normal resnet models
         if re.match(r"(dino_)?resnet\d+", cfg.model.pret.name):
@@ -359,7 +413,7 @@ def train(cfg, mvp=False):
 
         if cfg.model.pret.prune_progressive and cfg.model.pret.prune_criterion == 'topk':
             k = lambda ctx: cfg.model.pret.prune_k_start - (
-                        ctx.epoch / cfg.dl.epochs * (cfg.model.pret.prune_k_start - cfg.model.pret.prune_k))
+                    ctx.epoch / cfg.dl.epochs * (cfg.model.pret.prune_k_start - cfg.model.pret.prune_k))
         elif cfg.model.pret.prune_progressive and cfg.model.pret.prune_criterion == 'threshold':
             k = lambda ctx: ctx.epoch / cfg.dl.epochs * cfg.model.pret.prune_k
         elif not cfg.model.pret.prune_progressive:
@@ -367,18 +421,36 @@ def train(cfg, mvp=False):
         else:
             raise NotImplementedError()
 
+        if not cfg.model.pret.init_scores_magnitude:
+            scores_init = submasking.normal_scores_init(cfg.model.pret.init_scores_mean,
+                                          cfg.model.pret.init_scores_std)
+        else:
+            scores_init = submasking.magnitude_scores_init(cfg.model.pret.init_scores_mean,
+                                                           cfg.model.pret.init_scores_std,
+                                                           cfg.model.pret.init_scores_shuffle)
+
+
         model.to(device)
         test_input = torch.randn(2, 3, 224, 224).to(device)
         model = submasking.SubmaskedModel(model, scale=cfg.model.pret.submask_scale, test_input=test_input,
                                           parameter_selection=par_sel, k=k,
                                           prune_criterion=cfg.model.pret.prune_criterion,
-                                          scores_init=submasking.normal_scores_init(cfg.model.pret.init_scores_mean,
-                                                                                    cfg.model.pret.init_scores_std)).to(
-            device)
+                                          scores_init=scores_init,
+                                          shell_mode=cfg.model.pret.shell_mode).to(device)
+
+
+        # if cfg.model.pret.model_checkpoint != '':
+        #     chkpt_path = Path(cfg.main.checkpoint_path, cfg.model.pret.model_checkpoint)
+        #     state_dict = torch.load(chkpt_path)
+        #
+        #
+        #
+        #     import pdb; pdb.set_trace()
+
         if cfg.model.pret.module == 'classifier':
-            module = classifier.ClassifierModule(cfg, model, device, logger, train_dataset, val_dataset, test_dataset)
+            module = classifier.ClassifierModule(fc_in_features, cfg, model, device, logger, train_dataset, val_dataset, test_dataset)
         elif cfg.model.pret.module == 'swav':
-            module = ssl.SWAVModule(cfg, model, device, logger, train_dataset, val_dataset, test_dataset)
+            module = ssl.SWAVModule(fc_in_features, cfg, model, device, logger, train_dataset, val_dataset, test_dataset)
         else:
             raise ValueError(f"Unknown module {cfg.model.pret.module}")
     elif cfg.main.model == 'timm':
@@ -463,7 +535,7 @@ def train(cfg, mvp=False):
                                           scores_init=submasking.normal_scores_init(cfg.model.timm.init_scores_mean,
                                                                                     cfg.model.timm.init_scores_std)).to(
             device)
-        module = classifier.ClassifierModule(cfg, model, device, logger, train_dataset, val_dataset, test_dataset)
+        module = classifier.ClassifierModule(0, cfg, model, device, logger, train_dataset, val_dataset, test_dataset)
     else:
         raise Exception(f"Unknown model: {cfg.main.model}")
 
@@ -476,25 +548,66 @@ def train(cfg, mvp=False):
         row = f"{name}: {param.shape}, {param.numel()} elements, requires_grad={param.requires_grad}\n"
         weight_summary += row
         logger.experiment[f'global/weight_summary'].log(row)
-    print(weight_summary)
+    if cfg.main.verbose:
+        print(weight_summary)
+
+    if cfg.main.find_lr and not mvp:
+        # Run learning rate finder
+        lr_finder = trainer.tuner.lr_find(module)
+
+        # # Results can be found in
+        # results = lr_finder.results
+
+        # Plot with
+        fig = lr_finder.plot(suggest=True)
+        logger.experiment[f'global/lr_finder'].log(fig)
+        # fig.show()
+
+        # Pick point based on plot, or get suggestion
+        new_lr = lr_finder.suggestion()
+
+        # import pdb; pdb.set_trace()
+
+        # update hparams of themodule
+        module.lr = new_lr
+        module.learning_rate = new_lr
+
+        # import pdb; pdb.set_trace()
+
+        logger.experiment["global/lr_finder_interactive"].upload(File.as_html(fig))
+
+        # trainer.tune(module)
+
+    if cfg.main.run != '':
+        last_ckpt_path = checkpoint_path + '/' + 'last.ckpt'
+        load_model_checkpoint(last_ckpt_path, module)
+    elif cfg.main.train:
+        trainer.validate(module)
 
     if cfg.main.train:
-        if cfg.main.run != '':
-            last_ckpt_path = checkpoint_path + '/' + 'last.ckpt'
-            load_model_checkpoint(last_ckpt_path, module)
-        else:
-            trainer.validate(module)
-            pass
         trainer.fit(module)
 
         best_model_path = checkpoint_callback.best_model_path
-    else:
-        best_model_path = logger.experiment['training/model/best_model_path'].fetch()
+        logger.experiment[f'training/model/best_model_path'] = best_model_path
 
-    logger.experiment[f'training/model/best_model_path'] = best_model_path
-    load_model_checkpoint(best_model_path, module)
+    if cfg.main.test:
+        if not cfg.main.train:
+            best_model_path = logger.experiment['training/model/best_model_path'].fetch()
+        load_model_checkpoint(best_model_path, module)
+        trainer.test(module)
 
-    trainer.test(module)
+    if cfg.main.probe:
+        assert cfg.main.model == 'pret'
+        if cfg.model.pret.module == 'swav':
+            fc_in_features = cfg.swav.feat_dim
+        else:
+            raise NotImplementedError()
+
+        assert cfg.cls.fc != ''
+
+        lp_module = classifier.ClassifierModule(fc_in_features, cfg, model, device, logger, train_dataset, val_dataset, test_dataset)
+
+        trainer.fit(lp_module)
 
     torch.cuda.empty_cache()
     gc.collect()
@@ -510,7 +623,9 @@ def main(cfg: DictConfig):
 
     if cfg.main.mvp:
         task = Task(f"Running mvp").start()
+        cfg.main.in_mvp = True
         train(cfg, mvp=True)
+        cfg.main.in_mvp = False
         task.done()
 
     # Print big message indicating that the training will begin

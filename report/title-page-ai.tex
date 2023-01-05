@@ -14,6 +14,9 @@
 \usepackage{pgfplots}
 \usepackage{pgfplotstable}
 \usepackage{tikz}
+\usepackage{mathtools}
+\usepackage{amsmath}
+\usepackage{amsfonts}
 
 %\usepgfplotslibrary{external}
 \pgfplotsset{compat = newest}
@@ -182,6 +185,8 @@
     \section{Pass-through trick}
     BinnaryConnect: Use the passthrough trick to learn binary (-1 or 1) neural networks~\cite{courbariauxBinaryConnectTrainingDeep2016, hubaraBinarizedNeuralNetworks}
 
+    Ternary weight networks ~\cite{liTernaryWeightNetworks2022, zhuTrainedTernaryQuantization2017}
+
     Piggyback: Earliest paper I found (2018) which does the submasking method with the ‘pass-through’ trick. They actually use it for finetuning models like us.~\cite{mallyaPiggybackAdaptingSingle2018}
 
     NASpaper: NAS paper which, independently from the Piggyback paper, used similar tricks for performing neural architecture
@@ -201,6 +206,7 @@
     Their significant contribution is to freeze the the transformer embeddings in order to get the same performance with SGD as you can get with Adam. They get the highest CLIP-finentuned cifar-10 performance I have seen so far so it is a very good baseline to compare accuracies against~\cite{kumarHowFineTuneVision2022}
 
 
+
     \section{Self-supervision}
 
     Momentum contrast uses an embedding queue in combination with distinct key and query embedders such that the query embedder is trained through backpropagation on the current mini-batch (contrasted against all key embeddings in the queue) and the key embedder is updated by slowly adding the query embedder's parameters to it. Importantly, batch normalization needs to be disabled or shuffled.~\cite{heMomentumContrastUnsupervised2020}
@@ -209,10 +215,71 @@
 
     SLIP is an improvement over CLIP which also makes use of self-supervision for pretraining.~\cite{muSLIPSelfsupervisionMeets2021}
 
+    Pretraining using self-supervision, then pre-training again using self-supervision but on the target dataset, and finally supervised-finetuning of a classifier head works well in NLP~\cite{gururanganDonStopPretraining2020, howardUniversalLanguageModel2018}
+
+    \section{Ensembling}
+    Ensembles of smaller models appear to outperform larger models.~\cite{kondratyukWhenEnsemblingSmaller2020}
 
     \chapter{Method}
 
+    \section{SGD is an EMA}
 
+%    \[
+%%        \label{eq:ema}
+%        \theta_{t+1} &= \gamma \theta_{t+1\|\theta_t,g_t} + (1-\gamma) \theta_{t}\\
+%        \theta_{t+1} &=
+%    \]
+    \begin{align}
+        \label{eq:ema}
+        \theta_{t+1} &= \theta_{t} - g_{t+1}\gamma_{t+1}\\
+        \theta_{t+1} &= \theta_{t} - g_{t+1}\gamma_{t+1} + \theta_t\gamma_{t+1} - \theta_t\gamma_{t+1}\\
+        \theta_{t+1} &= \theta_{t} + (\theta_t - g_{t+1})\gamma_{t+1} - \theta_t\gamma_{t+1}\\
+        \theta_{t+1} &= (\theta_t - g_{t+1})\gamma_{t+1} + \theta_t(1 - \gamma_{t+1})\\
+        \theta_{t+1} &= \theta_{t+1\|\theta_t,g_{t+1}} \gamma_{t+1} + \theta_{t}(1-\gamma_{t+1})
+    \end{align}
+
+
+    \section{Translation invariance of threshold and score initialization}
+
+    \begin{align}
+%        \label{eq:threshold}
+        m_i^t &= [\theta_i^t > k]
+    \end{align}
+
+    where $k$ is the threshold
+
+    \begin{align}
+        \theta_i^{t} &= \theta_i^0 - \sum_{\hat t=0}^{t-1} \gamma^{\hat t} g_{i}(\mathcal{M}^{\hat t}, \mathcal{B}^{\hat t})
+    \end{align}
+
+    where $g_{i}(\mathcal{M}^{\hat t}, \mathcal{B}^{\hat t})$ is the gradient of the $i$'th weight given the mask $\mathcal{M}^{\hat t}$ and batch $\mathcal{B}^{\hat t}$ (including momentum if enabled)
+
+    \begin{align}
+        m_i^0 &= [\theta_i^0 > k] &= [\theta_i^0 + a > k + a] \\
+        m_i^{t} &= [\theta_i^0 - \sum_{\hat t=0}^{t-1} \gamma^{\hat t} g_{i}(\mathcal{M}^{\hat t}, \mathcal{B}^{\hat t}) > k] &= [\theta_i^0 + a - \sum_{\hat t=0}^{t-1} \gamma^{\hat t} g_{i}(\mathcal{M}^{\hat t}, \mathcal{B}^{\hat t}) > k + a]\label{eq:recur}
+    \end{align}
+
+    For the base case we then have that replacing $\theta_i^0$ with $\theta_i^0 + a$ and $k$ with $k+a$ will not change $m_i^0$ for any $i$, which means the network mask $\mathcal{M}^0$ is also invariant to this change.
+    Consequently, $m_i^1$ is also invariant to this change because of eq.~\ref{eq:recur} and because the gradient $g_i(\mathcal{M}^0, \mathcal{B}^0)$ does not change. The same reasoning can be applied recursively to $m_i^2$ and so on. Thus, by induction, translating the initial score and threshold by the same amount will not change any of the network masks during training (under simple sgd without weight decay).
+
+    \section{Scale invariance of learning rate and score initialization}
+
+    Equation for sgd with weight decay:
+
+    \begin{align}
+        \theta_i^t &= \theta_i^{t-1} - \gamma^t \left( g_i(\mathcal{M}^{t-1}, \mathcal{B}^{t-1}) + \lambda \theta_i^{t-1} \right)
+    \end{align}
+
+    Say we replace $\gamma^t$ with $\gamma^t \alpha$, $\theta_i^{t-1}$ with $\theta_i^{t-1} \alpha$ and $\lambda$ with $\frac{\lambda}{\alpha}$ for some $\alpha \in \mathbb{R}^+$, then we get:
+
+    \begin{align}
+        \alpha\theta_i^{t-1} - \alpha\gamma^t \left( g_i(\mathcal{M}^{t-1}, \mathcal{B}^{t-1}) + \frac{\lambda}{\alpha} \alpha\theta_i^{t-1} \right) &= \alpha \left(\theta_i^{t-1} - \gamma^t \left( g_i(\mathcal{M}^{t-1}, \mathcal{B}^{t-1}) + \lambda \theta_i^{t-1} \right)\right)\\
+        &= \alpha\theta_i^{t}\label{eq:krrrt}
+    \end{align}
+
+    Similarly to the previous proof, the initial masks $m_i^0 = [\theta_i^0 > 0]$ are invariant to the scale change $m_i^0 = [\alpha\theta_i^0 > 0]$, so the replacement of $\theta_i^0$ with $\alpha\theta_i^0$, combined with the other replacements, does not change the gradient $g_i(\mathcal{M}^0, \mathcal{B}^0)$.  Combined with eq \ref{eq:krrrt}, this means that the updated parameter after the first SGD step is only different in scale when compared to what it would have been without the scale change ($=\alpha\theta_i^t$). Apply this reasoning recursively and it can be seen through induction that the network masks will be the same during training as for the original learning rate, score initialization and weight decay.
+
+    Note that the conclusion still holds when momentum is enabled
     \chapter{Experiments}
 
     \includegraphics[width=1.0\textwidth]{plots/variant_sparsity.pdf}

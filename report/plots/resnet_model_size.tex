@@ -10,6 +10,7 @@
 
 % https://latexdraw.com/plot-a-function-and-data-in-latex/
 \pgfplotstableread{plot_data/resnet_model_size.csv}{\tablefree}
+\pgfplotstableread{plot_data/constrained_sparsity_resnet18.csv}{\tableresnetet}
 
 \begin{tikzpicture}
     \begin{axis}[
@@ -39,7 +40,6 @@
         ]
     ]
 %
-%        \addplot[blue] table [x = sparsity, y = {resnet18}] {\table};
 %
 %        \addplot[red] table [x = sparsity, y = {ssl_resnet18}] {\table};
 %
@@ -47,11 +47,13 @@
 
         \addplot+[scatter,only marks,scatter src=explicit symbolic] table [meta=model, x=sparsity, y=acc] {\tablefree};
 
+        \addplot[blue, mark=o, mark size=2pt] table [x = sparsity, y = acc] {\tableresnetet};
         \legend{
-            ResNet18,
-            ResNet26,
-            ResNet34,
-            ResNet50,
+            ResNet18 (free),
+            ResNet26 (free),
+            ResNet34 (free),
+            ResNet50 (free),
+            ResNet18 (constrained),
         }
 
     \end{axis}
