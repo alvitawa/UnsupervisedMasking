@@ -1,11 +1,24 @@
-Dual masked head / Head remapping / fixed seed
-SSL loss for finetuning (first SWAV, then DINO)
-Free method – Does it find the optimal prune rate?
-One more dataset (CIFAR100 CIFAR10 Flowers Food EuroSAT SUN UCF SVHN Pets DTD RESISC CLEVR, CUBS, Stanford Cars, WikiArt, Sketch datasets, STL)
-Test if dreambooth is feasible computationally
-Play around a bit more with resnet18 and flowers
-Dont linear probe for submasking experiments
-Exponential moving average
-Resnet sizes plot - add standard finetunes
-
-
+# lp 10%
+python3 main.py --multirun main.model=pret dl.epochs=100 main.dataset=cifar10pgn,flowers,eurosat,sun397,ucf101,oxfordpets,dtd dl.optimizer=sgd dl.lr=0.1 dl.momentum=0.9 dl.batch_size=128 dl.weight_decay=0.005 cls.size_scale_wd=1 model.pret.init_scores_mean=1.0 model.pret.shell_mode=replace model.pret.module=classifier cls.fc_score_init=1.0 model.pret.backbone=mask model.pret.head_type=identity dl.scheduler=cosine dl.num_workers=3 cls.fc=probed main.train=0 main.dataset_subset=10p main.info=lp10p
+# full-ft 10%
+main.py --multirun main.model=pret dl.epochs=150 main.dataset=cifar10pgn,flowers,eurosat,sun397,ucf101,oxfordpets,dtd dl.optimizer=sgd dl.lr=0.001 dl.momentum=0.9 dl.batch_size=64 dl.weight_decay=0.0005 model.pret.init_scores_mean=1.0 model.pret.shell_mode=copy model.pret.module=classifier cls.fc=linear cls.fc_score_init=1.0 model.pret.backbone=train model.pret.head_type=identity dl.scheduler=cosine dl.num_workers=18 dl.scheduler=step main.dataset_subset=10p main.info=fullft10p
+# mask-ft 10%
+python3 main.py --multirun main.model=pret dl.epochs=100 main.dataset=cifar10pgn,flowers,eurosat,sun397,ucf101,oxfordpets,dtd dl.optimizer=sgd dl.lr=0.1 dl.momentum=0.9 dl.batch_size=128 dl.weight_decay=0.005 cls.size_scale_wd=1 model.pret.init_scores_mean=1.0 model.pret.shell_mode=replace model.pret.module=classifier cls.fc_score_init=1.0 model.pret.backbone=mask model.pret.head_type=identity dl.scheduler=cosine dl.num_workers=3 cls.fc=masked main.train=0 main.dataset_subset=10p main.info=maskft10p
+# mask-ft-lin 10%
+python3 main.py --multirun main.model=pret dl.epochs=100 main.dataset=flowers,cifar10pgn,oxfordpets dl.optimizer=sgd dl.lr=0.1 dl.momentum=0.9 dl.batch_size=128 dl.weight_decay=0.005 model.pret.init_scores_mean=1.0 model.pret.shell_mode=replace model.pret.module=classifier cls.fc=linear cls.fc_score_init=1.0 model.pret.backbone=mask model.pret.head_type=identity dl.scheduler=cosine dl.num_workers=18 cls.head_scale_lr=0 cls.head_scale_wd=0 cls.head_lr=0.0007 cls.head_wd=0.0001 cls.size_scale_wd=1 dl.num_workers=18 main.dataset_subset=10p main.info=maskftlin10p
+# full-ft 100%
+python3 main.py --multirun main.model=pret dl.epochs=150 main.dataset=cifar10pgn dl.optimizer=sgd dl.lr=0.001 dl.momentum=0.9 dl.batch_size=64 dl.weight_decay=0.0005 model.pret.init_scores_mean=1.0 model.pret.shell_mode=copy model.pret.module=classifier cls.fc=linear cls.fc_score_init=1.0 model.pret.backbone=train model.pret.head_type=identity dl.scheduler=cosine dl.num_workers=18 dl.scheduler=step main.info=fullft100p
+# mask-ft 100%
+main.py --multirun main.model=pret dl.epochs=100 main.dataset=flowers dl.optimizer=sgd dl.lr=0.1 dl.momentum=0.9 dl.batch_size=128 dl.weight_decay=0.0005 cls.size_scale_wd=1 model.pret.init_scores_mean=1.0 model.pret.shell_mode=replace model.pret.module=classifier cls.fc_score_init=1.0 model.pret.backbone=mask model.pret.head_type=identity dl.scheduler=cosine dl.num_workers=18 cls.fc=masked main.info=maskft100p
+# mask-ft-lin 100%
+main.py --multirun main.model=pret dl.epochs=100 main.dataset=clevr_count,dtd,eurosat,food101,oxfordpets,resisc45,svhn,ucf101 dl.optimizer=sgd dl.lr=0.1 dl.momentum=0.9 dl.batch_size=128 dl.weight_decay=0.0005 model.pret.init_scores_mean=1.0 model.pret.shell_mode=replace model.pret.module=classifier cls.fc=linear cls.fc_score_init=1.0 model.pret.backbone=mask model.pret.head_type=identity dl.scheduler=cosine dl.num_workers=18 cls.head_scale_lr=0 cls.head_scale_wd=0 cls.head_lr=0.0007 cls.head_wd=0.0001  main.info=maskftlin100p
+# ssl-mask-ft 100%
+## 100epchs
+python3 main.py --multirun main.model=pret dl.epochs=100 main.dataset=multicrop_cifar10 dl.optimizer=sgd dl.lr=0.1 dl.momentum=0.9 dl.batch_size=64 dl.weight_decay=0.00025 model.pret.init_scores_mean=1.0 model.pret.shell_mode=replace model.pret.module=swav model.pret.backbone=mask model.pret.head_type=identity swav.queue_length=512 swav.epoch_queue_starts=30 swav.nmb_prototypes=500 dl.scheduler=cosine cls.head_scale_lr=0 cls.head_scale_wd=0 cls.head_lr=0.15 cls.head_wd=0.000001 cls.size_scale_wd=1 dl.num_workers=18 main.info=sslmaskft100epchs
+## 150epchs
+python3 main.py --multirun main.model=pret dl.epochs=100 main.dataset=multicrop_cifar10 dl.optimizer=sgd dl.lr=0.1 dl.momentum=0.9 dl.batch_size=64 dl.weight_decay=0.0001666667 model.pret.init_scores_mean=1.0 model.pret.shell_mode=replace model.pret.module=swav model.pret.backbone=mask model.pret.head_type=identity swav.queue_length=512 swav.epoch_queue_starts=30 swav.nmb_prototypes=500 dl.scheduler=cosine cls.head_scale_lr=0 cls.head_scale_wd=0 cls.head_lr=0.15 cls.head_wd=0.000001 cls.size_scale_wd=1 dl.num_workers=18 main.info=sslmaskft150epchs
+# ssl-full-ft 100%
+## Old
+python3 main.py --multirun main.model=pret dl.epochs=100 main.dataset=multicrop_cifar10 dl.optimizer=sgd dl.lr=0.15 dl.momentum=0.9 dl.batch_size=64 dl.weight_decay=0.000001 model.pret.init_scores_mean=1.0 model.pret.shell_mode=replace model.pret.module=swav model.pret.backbone=train model.pret.head_type=identity swav.queue_length=512 swav.epoch_queue_starts=30 swav.nmb_prototypes=500 dl.scheduler=cosine dl.num_workers=18 main.info=sslfullft100epchs
+## With sup params for backbone
+python3 main.py --multirun main.model=pret dl.epochs=150 dl.lr=0.001 dl.weight_decay=0.0005 main.dataset=multicrop_cifar10 dl.optimizer=sgd cls.head_lr=0.15 dl.momentum=0.9 dl.batch_size=64 cls.head_wd=0.000001 model.pret.init_scores_mean=1.0 model.pret.shell_mode=replace model.pret.module=swav model.pret.backbone=train model.pret.head_type=identity swav.queue_length=512 swav.epoch_queue_starts=30 swav.nmb_prototypes=500 dl.scheduler=cosine dl.num_workers=18 main.info=sslfullft150epchs

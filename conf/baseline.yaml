@@ -1,0 +1,31 @@
+defaults:
+  - default
+  - _self_
+
+
+main:
+  model: pret
+  dataset: cifar10pgn
+  info: full.ft
+
+dl:
+  epochs: 150
+  optimizer: sgd
+  lr: 0.001
+  momentum: 0.9
+  batch_size: 64
+  weight_decay: 0.0005
+  scheduler: cosine
+  num_workers: 18
+
+model:
+    pret:
+        module: classifier
+        backbone: train
+        head_type: identity
+        train_layers: ['conv','downsample']
+        source: timm
+        name: resnet18
+
+cls:
+    fc: linear

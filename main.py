@@ -1,4 +1,5 @@
 import copy
+import dataclasses
 import getpass
 import json
 import os
@@ -54,15 +55,19 @@ class MainConfig:
     info: str = ''
     monitor: str = 'val/loss'
     monitor_mode: str = 'min'
-    save_top_k: int = 4
+    save_every_n_epochs: int = -1
+    save_top_k: int = 2
     run: str = ''
     mvp: bool = True
     main: bool = True
     train: bool = True
     test: bool = True
+    validate: bool = True
     dataset: str = 'mnist'
+    dataset_subset: str = ''  # 50p -> 50%, 4000 -> 4k labels
     data_path: str = 'data'
     checkpoint_path: str = 'data/models/checkpoints'
+    load_checkpoint: str = ''
     save_as: str = ''
     in_mvp: bool = False
     verbose: bool = True
@@ -116,6 +121,7 @@ class ModelPretrainedConfig:
     submask_scale: bool = True
     head: str = 'train'
     backbone: str = 'mask'
+    train_layers: list = dataclasses.field(default_factory=lambda: ['conv'])
     pretrained_head: bool = False
     pretrained_backbone: bool = True
     head_type: str = 'linear'
@@ -164,6 +170,7 @@ def train(cfg, mvp=False):
         cfg = copy.deepcopy(cfg)
         cfg.dl.batch_size = 5
         cfg.dl.epochs = 1
+        cfg.main.run = ''
 
     if mvp:
         # https://docs.neptune.ai/api/neptune/#init_run
@@ -188,12 +195,26 @@ def train(cfg, mvp=False):
     checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath=checkpoint_path, monitor=cfg.main.monitor,
                                                        mode=cfg.main.monitor_mode, save_top_k=cfg.main.save_top_k,
                                                        save_last=True)
+    if cfg.main.save_every_n_epochs > 0:
+        periodic_checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath=checkpoint_path, save_top_k=-1,
+                                                                    save_last=False,
+                                                                    every_n_epochs=cfg.main.save_every_n_epochs)
+    else:
+        periodic_checkpoint_callback = None
+
     lr_monitor = pl.callbacks.LearningRateMonitor(logging_interval='step', log_momentum=True)
     modelsum_callback = ModelSummary(max_depth=-1)
+
+    callbacks = [checkpoint_callback, lr_monitor, modelsum_callback]
+    if periodic_checkpoint_callback is not None:
+        callbacks.append(periodic_checkpoint_callback)
+
     trainer = pl.Trainer(logger=logger, max_epochs=cfg.dl.epochs, accelerator=device,
                          log_every_n_steps=1, check_val_every_n_epoch=1, accumulate_grad_batches=cfg.dl.batch_accum,
-                         callbacks=[checkpoint_callback, lr_monitor, modelsum_callback], num_sanity_val_steps=0)
+                         callbacks=callbacks,
+                         num_sanity_val_steps=0)
 
+    train_dataset, val_dataset, test_dataset, train_dataset_unaugmented, val_dataset_unaugmented = None, None, None, None, None
     # TODO: per-dataset configs as well
     if cfg.main.dataset == 'mnist':
         train_dataset, val_dataset, test_dataset = dataset.get_mnist(cfg)
@@ -203,31 +224,75 @@ def train(cfg, mvp=False):
         train_dataset, val_dataset, test_dataset = dataset.get_cifar10(cfg)
         logger.experiment[f'global/data/train/labels'] = train_dataset.label_names
         logger.experiment[f'global/data/val/labels'] = val_dataset.label_names
-    elif cfg.main.dataset == 'cifar10pgn':
-        train_dataset, val_dataset, test_dataset = dataset.get_cifar10pgn(cfg)
-        logger.experiment[f'global/data/train/labels'] = train_dataset.label_names
-        logger.experiment[f'global/data/val/labels'] = val_dataset.label_names
-    elif cfg.main.dataset == 'flowers':
-        train_dataset, val_dataset, test_dataset = dataset.get_flowers(cfg)
-        logger.experiment[f'global/data/train/labels'] = train_dataset.label_names
-        logger.experiment[f'global/data/val/labels'] = val_dataset.label_names
-    elif cfg.main.dataset == 'cifar100':
-        train_dataset, val_dataset, test_dataset = dataset.pgn_get_dataset(cfg, pgn.datamodules.cifar100_datamodule.CIFAR100DataModule)
-        logger.experiment[f'global/data/train/labels'] = train_dataset.label_names
-        logger.experiment[f'global/data/val/labels'] = val_dataset.label_names
+    # elif cfg.main.dataset == 'cifar10pgn':
+    #     train_dataset, val_dataset, test_dataset, train_dataset_unaugmented = dataset.get_cifar10pgn(cfg)
+    #     logger.experiment[f'global/data/train/labels'] = train_dataset.label_names
+    #     logger.experiment[f'global/data/val/labels'] = val_dataset.label_names
+    # elif cfg.main.dataset == 'flowers':
+    #     train_dataset, val_dataset, test_dataset, train_dataset_unaugmented = dataset.get_flowers(cfg)
+    #     logger.experiment[f'global/data/train/labels'] = train_dataset.label_names
+    #     logger.experiment[f'global/data/val/labels'] = val_dataset.label_names
+    # elif cfg.main.dataset == 'sun397':
+    #     train_dataset, val_dataset, test_dataset, train_dataset_unaugmented = dataset.get_sun(cfg)
+    #     logger.experiment[f'global/data/train/labels'] = train_dataset.label_names
+    #     logger.experiment[f'global/data/val/labels'] = val_dataset.label_names
+    # elif cfg.main.dataset == 'cifar100':
+    #     train_dataset, val_dataset, test_dataset = dataset.pgn_get_dataset(cfg,
+    #                                                                        pgn.datamodules.cifar100_datamodule.CIFAR100DataModule)
+    #     logger.experiment[f'global/data/train/labels'] = train_dataset.label_names
+    #     logger.experiment[f'global/data/val/labels'] = val_dataset.label_names
     elif cfg.main.dataset.startswith('multicrop_'):
-        train_dataset, val_dataset, test_dataset = dataset.get_multicrop_dataset(cfg)
+        train_dataset, val_dataset, test_dataset, train_dataset_unaugmented, val_dataset_unaugmented = dataset.get_multicrop_dataset(
+            cfg)
     else:
-        raise Exception(f"Unknown dataset: {cfg.main.dataset}")
+        train_dataset, val_dataset, test_dataset, train_dataset_unaugmented = dataset.get_dataset(cfg)
+        logger.experiment[f'global/data/train/labels'] = train_dataset.label_names
+        logger.experiment[f'global/data/val/labels'] = val_dataset.label_names
 
     if mvp:
         train_dataset = train_dataset[:14] if train_dataset is not None else None
         val_dataset = val_dataset[:14] if val_dataset is not None else None
         test_dataset = test_dataset[:14] if test_dataset is not None else None
+        train_dataset_unaugmented = train_dataset_unaugmented[:14] if train_dataset_unaugmented is not None else None
+        val_dataset_unaugmented = val_dataset_unaugmented[:14] if val_dataset_unaugmented is not None else None
+    elif cfg.main.dataset_subset != '':
+        # Always use the same subset of data for all runs
+        generator = torch.Generator()
+        generator.manual_seed(42)
+
+        percent_mode = cfg.main.dataset_subset[-1] == 'p'
+        n = int(int(cfg.main.dataset_subset) if not percent_mode else len(train_dataset) * float(
+            cfg.main.dataset_subset[:-1]) / 100)
+        randperm = torch.randperm(len(train_dataset), generator=generator)[:n]
+
+        subset = torch.utils.data.Subset(train_dataset, randperm)
+        # Hack to make the subset behave like a classdataset
+        subset.label_names = train_dataset.label_names
+        subset.untransform = train_dataset.untransform
+        subset.classes = train_dataset.classes
+        subset.labels = train_dataset.labels
+        subset.inverse_transform = train_dataset.inverse_transform
+        assert len(subset) == n
+        train_dataset = subset
+
+        subset_unaugmented = torch.utils.data.Subset(train_dataset_unaugmented, randperm)
+        # Hack to make the subset behave like a classdataset
+        subset_unaugmented.label_names = train_dataset_unaugmented.label_names
+        subset_unaugmented.untransform = train_dataset_unaugmented.untransform
+        subset_unaugmented.classes = train_dataset_unaugmented.classes
+        subset_unaugmented.labels = train_dataset_unaugmented.labels
+        subset_unaugmented.inverse_transform = train_dataset_unaugmented.inverse_transform
+        assert len(subset_unaugmented) == n
+        train_dataset_unaugmented = subset_unaugmented
 
     logger.experiment[f'global/data/train/size'] = len(train_dataset) if train_dataset is not None else 0
     logger.experiment[f'global/data/val/size'] = len(val_dataset) if val_dataset is not None else 0
     logger.experiment[f'global/data/test/size'] = len(test_dataset) if test_dataset is not None else 0
+
+    logger.experiment[f'global/data/train/size_unaugmented'] = len(
+        train_dataset_unaugmented) if train_dataset_unaugmented is not None else 0
+    logger.experiment[f'global/data/val/size_unaugmented'] = len(
+        val_dataset_unaugmented) if val_dataset_unaugmented is not None else 0
 
     task = Task(f"Executing {cfg.main.task}")
     task.start()
@@ -395,8 +460,11 @@ def train(cfg, mvp=False):
             def par_sel(name, param):
                 if not param.requires_grad:
                     return 'freeze'
-                if 'conv' in name:
-                    return cfg.model.pret.backbone, 'conv'
+                for l in cfg.model.pret.train_layers:
+                    if l in name:
+                        assert not any(
+                            l2 in name for l2 in cfg.model.pret.train_layers if l != l2), 'Ambiguity in layer names'
+                        return cfg.model.pret.backbone, name
                 if 'fc' in name:
                     return cfg.model.pret.head, name
                 return 'freeze'
@@ -423,12 +491,11 @@ def train(cfg, mvp=False):
 
         if not cfg.model.pret.init_scores_magnitude:
             scores_init = submasking.normal_scores_init(cfg.model.pret.init_scores_mean,
-                                          cfg.model.pret.init_scores_std)
+                                                        cfg.model.pret.init_scores_std)
         else:
             scores_init = submasking.magnitude_scores_init(cfg.model.pret.init_scores_mean,
                                                            cfg.model.pret.init_scores_std,
                                                            cfg.model.pret.init_scores_shuffle)
-
 
         model.to(device)
         test_input = torch.randn(2, 3, 224, 224).to(device)
@@ -437,7 +504,6 @@ def train(cfg, mvp=False):
                                           prune_criterion=cfg.model.pret.prune_criterion,
                                           scores_init=scores_init,
                                           shell_mode=cfg.model.pret.shell_mode).to(device)
-
 
         # if cfg.model.pret.model_checkpoint != '':
         #     chkpt_path = Path(cfg.main.checkpoint_path, cfg.model.pret.model_checkpoint)
@@ -448,9 +514,11 @@ def train(cfg, mvp=False):
         #     import pdb; pdb.set_trace()
 
         if cfg.model.pret.module == 'classifier':
-            module = classifier.ClassifierModule(fc_in_features, cfg, model, device, logger, train_dataset, val_dataset, test_dataset)
+            module = classifier.ClassifierModule(fc_in_features, cfg, model, device, logger, train_dataset, val_dataset,
+                                                 test_dataset, train_dataset_unaugmented)
         elif cfg.model.pret.module == 'swav':
-            module = ssl.SWAVModule(fc_in_features, cfg, model, device, logger, train_dataset, val_dataset, test_dataset)
+            module = ssl.SWAVModule(fc_in_features, cfg, model, device, logger, train_dataset, val_dataset,
+                                    test_dataset, train_dataset_unaugmented, val_dataset_unaugmented)
         else:
             raise ValueError(f"Unknown module {cfg.model.pret.module}")
     elif cfg.main.model == 'timm':
@@ -578,34 +646,49 @@ def train(cfg, mvp=False):
 
         # trainer.tune(module)
 
-    if cfg.main.run != '':
+    if cfg.main.load_checkpoint != '':
+        load_model_checkpoint(cfg.main.checkpoint_path + '/' + cfg.main.load_checkpoint, module)
+    elif cfg.main.run != '':
         last_ckpt_path = checkpoint_path + '/' + 'last.ckpt'
         load_model_checkpoint(last_ckpt_path, module)
-    elif cfg.main.train:
+
+    if cfg.main.validate:
         trainer.validate(module)
 
     if cfg.main.train:
+        assert not cfg.main.probe
         trainer.fit(module)
 
         best_model_path = checkpoint_callback.best_model_path
         logger.experiment[f'training/model/best_model_path'] = best_model_path
 
     if cfg.main.test:
-        if not cfg.main.train:
-            best_model_path = logger.experiment['training/model/best_model_path'].fetch()
-        load_model_checkpoint(best_model_path, module)
+        assert not cfg.main.probe
+        # if not cfg.main.train:
+        #     best_model_path = logger.experiment['training/model/best_model_path'].fetch()
+        # if cfg.main.train:
+        #     load_model_checkpoint(best_model_path, module)
         trainer.test(module)
 
     if cfg.main.probe:
+        assert not cfg.main.train and not cfg.main.test
         assert cfg.main.model == 'pret'
-        if cfg.model.pret.module == 'swav':
-            fc_in_features = cfg.swav.feat_dim
-        else:
-            raise NotImplementedError()
+        # if cfg.model.pret.module == 'swav':
+        #     fc_in_features = cfg.swav.feat_dim
+        # else:
+        #     raise NotImplementedError()
 
-        assert cfg.cls.fc != ''
+        model = module.model
+        for param in model.parameters():
+            param.requires_grad = False
 
-        lp_module = classifier.ClassifierModule(fc_in_features, cfg, model, device, logger, train_dataset, val_dataset, test_dataset)
+        lp_cfg = copy.deepcopy(cfg)
+        lp_cfg.cls = lp_cfg.lp.cls
+
+        assert lp_cfg.cls.fc != ''
+
+        lp_module = classifier.ClassifierModule(fc_in_features, lp_cfg, model, device, logger, train_dataset,
+                                                val_dataset, test_dataset)
 
         trainer.fit(lp_module)
 
@@ -628,17 +711,16 @@ def main(cfg: DictConfig):
         cfg.main.in_mvp = False
         task.done()
 
-    # Print big message indicating that the training will begin
-    print(
-        """
-        ____________________________________________________________________
-        |                                                                  |
-        |                          BEGIN TRAINING                          |
-        |                                                                  |
-        --------------------------------------------------------------------
-        """)
-
     if cfg.main.main:
+        # Print big message indicating that the training will begin
+        print(
+            """
+    ____________________________________________________________________
+    |                                                                  |
+    |                          BEGIN TRAINING                          |
+    |                                                                  |
+    --------------------------------------------------------------------
+            """)
         task = Task(f"Running main").start()
         train(cfg)
         task.done()

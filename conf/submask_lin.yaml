@@ -1,0 +1,18 @@
+defaults:
+  - submask
+  - _self_
+
+
+#main.py --multirun main.model=pret dl.epochs=100 main.dataset=clevr_count,dtd,eurosat,food101,oxfordpets,resisc45,svhn,ucf101 dl.optimizer=sgd dl.lr=0.1 dl.momentum=0.9 dl.batch_size=128 dl.weight_decay=0.0005 model.pret.init_scores_mean=1.0 model.pret.shell_mode=replace model.pret.module=classifier cls.fc=linear cls.fc_score_init=1.0 model.pret.backbone=mask model.pret.head_type=identity dl.scheduler=cosine model.pret.source=timm model.pret.name=resnet18 dl.num_workers=18 cls.head_scale_lr=0 cls.head_scale_wd=0 cls.head_lr=0.0007 cls.head_wd=0.0001 hydra/launcher=joblib hydra.launcher.n_jobs=4 dl.multiprocessing_context=fork
+
+main:
+  info: submask.lin.ft
+
+cls:
+    fc: linear
+    head_scale_lr: 0
+    head_scale_wd: 0
+    head_lr: 0.0007
+    head_wd: 0.0001
+
+

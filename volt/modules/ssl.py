@@ -24,7 +24,7 @@ from volt.modules.classifier import ClassifierModule
 @dataclass
 class SWAVConfig:
     nmb_crops: list = (2, 6)
-    size_crops: list = (224, 96)
+    size_crops: list = (224, 96)  # Should be from big to small
     min_scale_crops: list = (0.14, 0.05)
     max_scale_crops: list = (1, 0.14)
     nmb_prototypes: int = 3000
@@ -66,10 +66,16 @@ class SWAVModule(ClassifierModule):
         self.use_the_queue = False
 
         self.fc = nn.Linear(fc_in_features, self.cfg.swav.feat_dim)
+        self.fc_in_features = fc_in_features
 
     # def dataloader(self, namespace, shuffle):
     #     return DataLoader(self.multicrop_dataset[namespace], batch_size=self.cfg.dl.batch_size, shuffle=shuffle,
     #                       num_workers=self.cfg.dl.num_workers)
+
+    def configure_optimizers(self, _head_params=None):
+        # From self.fc and self.prototypes
+        head_params = list(self.fc.parameters()) + list(self.prototypes.parameters())
+        return super().configure_optimizers(head_params)
 
     def on_train_epoch_start(self) -> None:
         if self.cfg.swav.queue_length > 0 and self.current_epoch >= self.cfg.swav.epoch_queue_starts and self.queue is None:
@@ -96,9 +102,11 @@ class SWAVModule(ClassifierModule):
         )[1], 0)
         start_idx = 0
         outs = []
+        backbone_outs = []
         for end_idx in idx_crops:
-            _out = self.model(torch.cat(multi_crops[start_idx: end_idx]).to(self.device))
-            _out = self.fc(_out)
+            backbone_out = self.model(torch.cat(multi_crops[start_idx: end_idx]).to(self.device))
+            backbone_outs.append(backbone_out.detach())
+            _out = self.fc(backbone_out)
             outs.append(_out)
             # if start_idx == 0:
             #     output = _out
@@ -107,6 +115,9 @@ class SWAVModule(ClassifierModule):
             start_idx = end_idx
         output = torch.cat(outs)
         embedding = nn.functional.normalize(output, dim=1, p=2)
+
+        backbone_out = torch.cat(backbone_outs)
+        backbone_embedding = nn.functional.normalize(backbone_out, dim=1, p=2)
 
         # embedding = self.model(multi_crops)
         output = self.prototypes(embedding)
@@ -146,8 +157,8 @@ class SWAVModule(ClassifierModule):
         # import pdb; pdb.set_trace()
         self.log(f'{namespace}/loss', loss)
         r = {'loss': loss, 'target': _label}
-        if namespace == 'val':
-            r['embedding'] = embedding.view(sum(self.cfg.swav.nmb_crops), bs, self.cfg.swav.feat_dim).mean(dim=0)
+        if namespace in ['val', 'test']:
+            r['embedding'] = backbone_embedding.view(sum(self.cfg.swav.nmb_crops), bs, self.fc_in_features).mean(dim=0)
         return r
 
     # def analyze(self, outputs, sample_inputs, sample_outputs, namespace):

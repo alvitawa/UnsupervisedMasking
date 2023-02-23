@@ -6,9 +6,9 @@ authors = ["Alfonso Taboada Warmerdam <avtwarmerdam@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.8"
-torch = "^1.13.0"
-numpy = "^1.23.5"
+python = "^3.0"
+torch = "^1.0.0"
+numpy = "^1.0.0"
 
 
 [build-system]

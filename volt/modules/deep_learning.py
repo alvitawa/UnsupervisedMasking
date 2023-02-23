@@ -1,8 +1,8 @@
+import copy
 import math
 import os
 import random
 from dataclasses import dataclass
-from typing import List
 
 import numpy
 import numpy as np
@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 
 from subnetworks.submasking import SubmaskedModel
 from volt import log, util
-from volt.util import ddict
+from volt.util import ddict, move_to_device
 
 from volt import config
 
@@ -33,6 +33,10 @@ class DeepLearningConfig:
     weight_decay: float = 0
     momentum: float = 0
     scheduler: str = 'none'
+    scheduler_step: int = 50
+    scheduler_gamma: float = 0.1
+    eta_min: float = 0
+    cooldown: int = 50
     start_lr: float = 0.3
     final_lr: float = 0.0048
     base_lr: float = 4.8
@@ -42,39 +46,29 @@ class DeepLearningConfig:
     analyze_sample_size: int = 2
     multiprocessing_context: str = 'default'
 
+config.register('deep_learning', DeepLearningConfig)
+
 def seed_worker(worker_id):
-    worker_seed = torch.initial_seed() % 2**32
+    worker_seed = torch.initial_seed() % 2 ** 32
     numpy.random.seed(worker_seed)
     random.seed(worker_seed)
     torch.manual_seed(worker_seed)
 
 
-config.register('deep_learning', DeepLearningConfig)
-
-
 # Moves all tensors in a nested data structure (lists, dicts, tuples, ... etc) to self.device
-def move_to_device(data, device):
-    if isinstance(data, torch.Tensor):
-        return data.to(device)
-    elif isinstance(data, list):
-        return [move_to_device(x, device) for x in data]
-    elif isinstance(data, dict):
-        return {k: move_to_device(v, device) for k, v in data.items()}
-    elif isinstance(data, tuple):
-        return tuple(move_to_device(x, device) for x in data)
-    elif isinstance(data, set):
-        return {move_to_device(x, device) for x in data}
-    else:
-        return data
 
 
 class DeepLearningModule(LightningModule):
-    def __init__(self, cfg, model, device, logger, train_dataset=None, val_dataset=None, test_dataset=None):
+    def __init__(self, cfg, model, device, logger, train_dataset=None, val_dataset=None, test_dataset=None,
+                 train_dataset_unaugmented=None, val_dataset_unaugmented=None, test_dataset_unaugmented=None):
         super().__init__()
         self.scheduler_ = None
         self.optimizer_ = None
         self.dataset = ddict(train=train_dataset, val=val_dataset,
-                             test=test_dataset if test_dataset is not None else val_dataset)
+                             test=test_dataset if test_dataset is not None else val_dataset,
+                             train_unaugmented=train_dataset_unaugmented, val_unaugmented=val_dataset_unaugmented,
+                             test_unaugmented=test_dataset_unaugmented if test_dataset_unaugmented is not None else val_dataset_unaugmented)
+
         self.cfg = cfg
         self.model = model
         self.device_ = device
@@ -91,7 +85,8 @@ class DeepLearningModule(LightningModule):
         g = torch.Generator()
         g.manual_seed(torch.initial_seed())
         return DataLoader(self.dataset[namespace], batch_size=self.cfg.dl.batch_size, shuffle=shuffle,
-                          num_workers=self.cfg.dl.num_workers, multiprocessing_context=self.cfg.dl.multiprocessing_context if self.cfg.dl.multiprocessing_context != 'default' else None)#, worker_init_fn=seed_worker, generator=g)
+                          num_workers=self.cfg.dl.num_workers,
+                          multiprocessing_context=self.cfg.dl.multiprocessing_context if self.cfg.dl.multiprocessing_context != 'default' else None)  # , worker_init_fn=seed_worker, generator=g)
 
     def forward_dataloader(self, namespace):
         return self.dataloader(namespace, False)
@@ -152,6 +147,11 @@ class DeepLearningModule(LightningModule):
     def analyze(self, outputs, sample_inputs, sample_outputs, namespace):
         if hasattr(self.model, 'analyze'):
             model_analysis = self.model.analyze(self.get_ctx())
+            if hasattr(self.model, 'depth_analysis') and namespace == 'test':
+                # Do it on a model copy to prevent corruption of the original model
+                model_copy = copy.deepcopy(self.model)
+                for k, v in model_copy.depth_analysis(self.get_ctx()).items():
+                    self.logger_.experiment[f'training/{namespace}/depth_analysis/{k}'].log(v)
             for k, v in model_analysis.items():
                 self.logger_.experiment[f'training/{namespace}/model_analysis/{k}'].log(v)
         if sample_inputs is not None:
@@ -164,8 +164,7 @@ class DeepLearningModule(LightningModule):
 
     def training_epoch_end(self, outputs, namespace='train'):
         # concatenate outputs, which is collating but by concatenation rather than stacking
-        outputs = {k: torch.cat([x[k] if len(x[k].shape) > 0 else x[k].unsqueeze(0) for x in outputs], dim=0) for k in
-                   outputs[0].keys()}
+        outputs = util.concat_dict_list(outputs)
 
         loss = outputs['loss'].mean()
         self.log(f'{namespace}/loss_epoch', loss)
@@ -201,9 +200,10 @@ class DeepLearningModule(LightningModule):
     def test_epoch_end(self, outputs):
         self.training_epoch_end(outputs, namespace='test')
 
-    def configure_optimizers(self):
+    def configure_optimizers(self, groups=None):
         if self.cfg.dl.optimizer == 'adam':
-            optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate, weight_decay=self.cfg.dl.weight_decay)
+            optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate,
+                                         weight_decay=self.cfg.dl.weight_decay)
         elif self.cfg.dl.optimizer == 'lbfgs':
             optimizer = torch.optim.LBFGS(self.parameters(),  # lr=self.learning_rate, #, history_size=1000,
                                           # max_iter=100,

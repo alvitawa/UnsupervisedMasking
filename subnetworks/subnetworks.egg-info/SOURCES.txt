@@ -1,5 +1,9 @@
 README.md
+pyproject.toml
 setup.py
+subnetworks/__init__.py
+subnetworks/simple_mnist_example.py
+subnetworks/submasking.py
 subnetworks.egg-info/PKG-INFO
 subnetworks.egg-info/SOURCES.txt
 subnetworks.egg-info/dependency_links.txt

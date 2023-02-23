@@ -4,9 +4,12 @@ defaults:
   - /deep_learning@dl
   - /classifier@cls
   - /swav@swav
+  - /linear_probe@lp
   - /model/clip@model.clip
   - /model/repro@model.repro
   - /model/timm@model.timm
   - /model/pret@model.pret
+#  - /classifier@lp.cls
 # https://hydra.cc/docs/1.0/plugins/joblib_launcher/
 #  - override hydra/launcher: joblib
+#  hydra/launcher=joblib hydra.launcher.n_jobs=3 dl.multiprocessing_context=fork

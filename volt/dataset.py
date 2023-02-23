@@ -1,6 +1,7 @@
 import os
 import random
 from dataclasses import dataclass
+from typing import Sequence
 
 import numpy as np
 import torch
@@ -83,6 +84,28 @@ class ClassDataset(SliceableDataset):
         return self.inverse_transform(x)
 
 
+class ClassDatasetSubset(ClassDataset):
+    r"""
+    Subset of a dataset at specified indices.
+
+    Args:
+        dataset (Dataset): The whole Dataset
+        indices (sequence): Indices in the whole set selected for subset
+    """
+
+    def __init__(self, indices: Sequence[int], *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.indices = indices
+
+    def get_item(self, idx):
+        if isinstance(idx, list):
+            return super().get_item([self.indices[i] for i in idx])
+        return super().get_item(self.indices[idx])
+
+    def __len__(self):
+        return len(self.indices)
+
+
 def get_mnist(cfg):
     train_dataset = datasets.MNIST(os.path.join(cfg.main.data_path, 'mnist'), train=True, download=True)
     val_dataset = datasets.MNIST(os.path.join(cfg.main.data_path, 'mnist'), train=False)
@@ -152,6 +175,7 @@ def pgn_get_dataset(cfg, dmodule):
 
     train_dataset = datamodule.train_set
     val_dataset = datamodule.val_set
+    train_dataset_unaugmented = datamodule.train_set_unaugmented
 
     transform = torch.nn.Identity()
     mean = (0.48145466, 0.4578275, 0.40821073)
@@ -170,7 +194,45 @@ def pgn_get_dataset(cfg, dmodule):
     val_dataset = ClassDataset(val_dataset, transform, untransform, labels=range(len(classes)),
                                label_names=classes)
 
-    return train_dataset, val_dataset, None
+    classes = list(
+        map(lambda x: x[0], sorted(list(train_dataset_unaugmented.class_to_idx.items()), key=lambda x: x[1])))
+    assert all([train_dataset_unaugmented.class_to_idx[c] == i for i, c in enumerate(classes)])
+    train_dataset_unaugmented = ClassDataset(train_dataset_unaugmented, transform, untransform,
+                                             labels=range(len(classes)), label_names=classes)
+
+    return train_dataset, val_dataset, None, train_dataset_unaugmented
+
+def get_dataset(cfg):
+    name = cfg.main.dataset
+    if name == 'cifar10':
+        return get_cifar10(cfg)
+    elif name == 'mnist':
+        return get_mnist(cfg)
+    elif name == 'cifar10pgn':
+        return pgn_get_dataset(cfg, pgn.datamodules.cifar10_datamodule.CIFAR10DataModule)
+    elif name == 'cifar100':
+        return pgn_get_dataset(cfg, pgn.datamodules.cifar100_datamodule.CIFAR100DataModule)
+    elif name == 'flowers':
+        return pgn_get_dataset(cfg, pgn.datamodules.flowers102_datamodule.Flowers102DataModule)
+    elif name == 'sun397':
+        return pgn_get_dataset(cfg, pgn.datamodules.sun397_datamodule.SUN397DataModule)
+    elif name == 'clevr_count':
+        return pgn_get_dataset(cfg, pgn.datamodules.clevr_count_datamodule.CLEVRCountDataModule)
+    elif name == 'dtd':
+        return pgn_get_dataset(cfg, pgn.datamodules.dtd_datamodule.DTDDataModule)
+    elif name == 'eurosat':
+        return pgn_get_dataset(cfg, pgn.datamodules.eurosat_datamodule.EuroSATDataModule)
+    elif name == 'food101':
+        return pgn_get_dataset(cfg, pgn.datamodules.food101_datamodule.Food101DataModule)
+    elif name == 'oxfordpets':
+        return pgn_get_dataset(cfg, pgn.datamodules.oxfordpets_datamodule.OxfordPetsDataModule)
+    elif name == 'resisc45':
+        return pgn_get_dataset(cfg, pgn.datamodules.resisc45_datamodule.RESISC45DataModule)
+    elif name == 'svhn':
+        return pgn_get_dataset(cfg, pgn.datamodules.svhn_datamodule.SVHNDataModule)
+    elif name == 'ucf101':
+        return pgn_get_dataset(cfg, pgn.datamodules.ucf101_datamodule.UCF101DataModule)
+
 
 
 # 224x224 resolution in accordance with most imagenet pretrained models
@@ -180,6 +242,10 @@ def get_cifar10pgn(cfg):
 
 def get_flowers(cfg):
     return pgn_get_dataset(cfg, pgn.datamodules.flowers102_datamodule.Flowers102DataModule)
+
+
+def get_sun(cfg):
+    return pgn_get_dataset(cfg, pgn.datamodules.sun397_datamodule.SUN397DataModule)
 
 
 class MultiCropDataset(SliceableDataset):
@@ -276,6 +342,17 @@ def get_color_distortion(s=1.0):
 
 def get_multicrop_dataset(cfg):
     dataset_name = cfg.main.dataset
+
+    test_transform = torchvision.transforms.Compose([
+        torchvision.transforms.Resize(size=cfg.swav.size_crops[0]),
+        torchvision.transforms.CenterCrop(size=cfg.swav.size_crops[0]),
+        torchvision.transforms.ToTensor(),
+        torchvision.transforms.Normalize(
+            mean=(0.48145466, 0.4578275, 0.40821073),
+            std=(0.26862954, 0.26130258, 0.27577711)
+        ),
+    ])
+
     if dataset_name == 'multicrop_cifar10':
         train_dataset = torchvision.datasets.CIFAR10(
             root=cfg.main.data_path, train=True, download=True
@@ -284,10 +361,19 @@ def get_multicrop_dataset(cfg):
             root=cfg.main.data_path, train=False, download=True
         )
 
+        train_dataset_unaugmented = torchvision.datasets.CIFAR10(
+            root=cfg.main.data_path, train=True, download=True, transform=test_transform)
+        val_dataset_unaugmented = torchvision.datasets.CIFAR10(
+            root=cfg.main.data_path, train=False, download=True, transform=test_transform)
+
         train_dataset = ClassDataset(train_dataset, nn.Identity(), nn.Identity(), labels=range(10),
                                      label_names=train_dataset.classes)
         val_dataset = ClassDataset(val_dataset, nn.Identity(), nn.Identity(), labels=range(10),
                                    label_names=val_dataset.classes)
+        train_dataset_unaugmented = ClassDataset(train_dataset_unaugmented, nn.Identity(), nn.Identity(),
+                                                 labels=range(10), label_names=train_dataset_unaugmented.classes)
+        val_dataset_unaugmented = ClassDataset(val_dataset_unaugmented, nn.Identity(), nn.Identity(),
+                                                  labels=range(10), label_names=val_dataset_unaugmented.classes)
     else:
         raise NotImplementedError()
 
@@ -296,4 +382,5 @@ def get_multicrop_dataset(cfg):
     val_dataset_mc = MultiCropDataset(val_dataset, cfg.swav.size_crops, cfg.swav.nmb_crops, cfg.swav.min_scale_crops,
                                       cfg.swav.max_scale_crops)
 
-    return train_dataset_mc, val_dataset_mc, None
+    # TODO
+    return train_dataset_mc, val_dataset_mc, None, train_dataset_unaugmented, val_dataset_unaugmented

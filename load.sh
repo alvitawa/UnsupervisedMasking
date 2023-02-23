@@ -11,14 +11,16 @@ case "$USER" in
 
 		source keys.sh
 	;;
-  ataboada*)
-    module purge
+	ataboada*)
+		module purge
 
-    module add cuda91/toolkit/9.1.85
-  ;;
+		module add cuda91/toolkit/9.1.85
+	;;
+	ookah*)
+		source keys.sh
+	;;
 	*)
 		source keys.sh
-		source venv/bin/activate
 	;;
 esac
 

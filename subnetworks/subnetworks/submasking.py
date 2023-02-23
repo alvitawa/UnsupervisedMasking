@@ -53,6 +53,48 @@ class GetSubnet(autograd.Function):
         # send the gradient g straight-through on the backward pass.
         return g, None, None
 
+class MaskedConstantLayer(nn.Module):
+    def __init__(self, in_ft, out_ft, score_init, positive=True, negative=False):
+        super().__init__()
+        if positive:
+            self.WP = nn.Parameter(torch.ones(in_ft, out_ft) / np.sqrt(in_ft))
+            self.SP = nn.Parameter(torch.ones(in_ft, out_ft)*score_init)
+        if negative:
+            self.WN = nn.Parameter(torch.ones(in_ft, out_ft) / np.sqrt(in_ft))
+            self.SN = nn.Parameter(torch.ones(in_ft, out_ft)*score_init)
+        assert positive or negative
+        self.positive = positive
+        self.negative = negative
+
+    def forward(self, x):
+        if self.positive:
+            MP = GetSubnet.apply(self.SP, 0, 'threshold')
+            xP = torch.mm(x, self.WP * MP) / torch.sqrt(MP.mean())
+        if self.negative:
+            MN = GetSubnet.apply(self.SN, 0, 'threshold')
+            xN = torch.mm(x, self.WN * MN) / torch.sqrt(MN.mean())
+        if self.positive and self.negative:
+             out = (xP + xN) / 2
+        elif self.positive:
+             out = xP
+        elif self.negative:
+             out = xN
+        return out
+
+class MaskedLinear(nn.Module):
+    def __init__(self, in_ft, out_ft, score_init):
+        super().__init__()
+        self.W = nn.Linear(in_ft, out_ft, bias=False)
+        self.W.weight.requires_grad = False
+        self.S = nn.Parameter(torch.ones(out_ft, in_ft)*score_init)
+
+    def forward(self, x):
+        M = GetSubnet.apply(self.S, 0, 'threshold')
+        out = x @ (self.W.weight * M).T / torch.sqrt(M.mean())
+        # import pdb; pdb.set_trace()
+        return out
+
+
 def default_scores_init(scores, _weights):
     # Initialize scores
     if len(scores.shape) < 2:
@@ -146,7 +188,7 @@ class SubmaskedModel(torch.nn.Module):
             data.requires_grad = False
             scores_init(scores_, data)
 
-    def analyze(self, ctx=None):
+    def analyze(self, ctx=None, depth_analysis=False):
         if ctx is None:
             ctx = {}
 
@@ -204,11 +246,22 @@ class SubmaskedModel(torch.nn.Module):
             analysis['max_score_{}'.format(slot)] = slot_max_score
             analysis['min_score_{}'.format(slot)] = slot_min_score
 
-        if self.test_input is None:
-            return
+        return analysis
+
+    def depth_analysis(self, ctx=None):
+        """
+            WARNING
+
+            This code corrupts the model somehow.
+
+            WARNING
+        """
+        assert self.test_input is not None
+        analysis = {}
 
         prev = torch.is_grad_enabled()
         mode = self.training
+
 
         # Temporarily re-enable gradients to get the computation graph
         torch.set_grad_enabled(True)

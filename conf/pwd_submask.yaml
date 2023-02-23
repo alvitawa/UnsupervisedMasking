@@ -1,0 +1,33 @@
+defaults:
+  - baseline
+  - _self_
+
+# main.py --multirun main.model=pret dl.epochs=100 main.dataset=flowers dl.optimizer=sgd dl.lr=0.1 dl.momentum=0.9 dl.batch_size=128 dl.weight_decay=0.0005 cls.size_scale_wd=1 model.pret.init_scores_mean=1.0 model.pret.shell_mode=replace model.pret.module=classifier cls.fc_score_init=1.0 model.pret.backbone=mask model.pret.head_type=identity dl.scheduler=cosine model.pret.source=timm model.pret.name=resnet18 dl.num_workers=18 cls.fc=multihead_masked,masked cls.multihead_heads=1 hydra/launcher=joblib hydra.launcher.n_jobs=4 dl.multiprocessing_context=fork
+
+main:
+  info: submask.ft
+
+dl:
+  epochs: 100
+  optimizer: sgd
+  lr: 0.1
+  momentum: 0.9
+  batch_size: 128
+  weight_decay: 0.0005
+  scheduler: cosine
+
+model:
+    pret:
+        module: classifier
+        backbone: mask
+        init_scores_mean: 1.0
+        shell_mode: replace
+        source: timm
+        name: resnet18
+
+cls:
+    fc: masked
+    fc_score_init: 1.0
+
+
+

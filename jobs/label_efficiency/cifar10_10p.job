@@ -1,0 +1,26 @@
+#!/bin/bash
+
+#--nodes=1 --ntasks=1 --cpus-per-task=18 --gpus=1 --partition=gpu --time=24:00:00 --cpus-per-task=18
+
+#SBATCH --job-name=TRAIN
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=18
+#SBATCH --gpus=1
+#SBATCH --time=48:00:00
+#SBATCH --partition=gpu
+#SBATCH --output=out/slurm_%A.out
+
+source load.sh
+export XTRACE=0
+
+# lp 10%
+python3 main.py --config-name baseline model.pret.source=hub model.pret.name=resnet50 cls.fc=probed main.train=0 main.dataset_subset=10p main.info=lp10p
+# lp 100%
+python3 main.py --config-name baseline model.pret.source=hub model.pret.name=resnet50 cls.fc=probed main.train=0 main.info=lp100p
+# full-ft 10%
+python3 main.py --config-name baseline model.pret.source=hub model.pret.name=resnet50 main.dataset_subset=10p main.info=fullft10p dl.lr=0.15 dl.weight_decay=0.000001
+# mask-ft 10%
+python3 main.py --config-name submask model.pret.source=hub model.pret.name=resnet50 main.dataset_subset=10p main.info=maskft10p
+# mask-ft-lin 10%
+python3 main.py --config-name submask_lin model.pret.source=hub model.pret.name=resnet50 main.dataset_subset=10p main.info=maskftlin10p

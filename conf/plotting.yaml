@@ -32,3 +32,7 @@ resnet_model_size:
         - SUB-293
         - SUB-292
 
+#free_runs:
+  #rn18
+
+

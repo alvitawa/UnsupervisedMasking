@@ -2,6 +2,7 @@ import math
 from pathlib import Path
 
 import numpy as np
+import torch
 import torchvision
 from PIL import Image
 from matplotlib import pyplot as plt
@@ -92,3 +93,25 @@ def plot_matrix(matrix):
     plt.ylabel(f'Axis 0 ({matrix.shape[0]})')
     plot = fig2img(fig)
     return plot
+
+
+def move_to_device(data, device):
+    if isinstance(data, torch.Tensor):
+        return data.to(device)
+    elif isinstance(data, list):
+        return [move_to_device(x, device) for x in data]
+    elif isinstance(data, dict):
+        return {k: move_to_device(v, device) for k, v in data.items()}
+    elif isinstance(data, tuple):
+        return tuple(move_to_device(x, device) for x in data)
+    elif isinstance(data, set):
+        return {move_to_device(x, device) for x in data}
+    else:
+        return data
+
+def concat_dict_list(dict_list):
+    # concatenate outputs, which is collating but by concatenation rather than stacking
+    return {
+        k: torch.cat([x[k] if len(x[k].shape) > 0 else x[k].unsqueeze(0) for x in dict_list], dim=0) for
+        k in dict_list[0].keys()
+    }
