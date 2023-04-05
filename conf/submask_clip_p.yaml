@@ -1,0 +1,14 @@
+defaults:
+  - submask_clip
+  - _self_
+
+
+
+main:
+  info: submask.clip.prompted
+
+
+cls:
+  fc: pret_submasked
+
+

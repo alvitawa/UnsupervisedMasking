@@ -1,0 +1,10 @@
+
+defaults:
+    - /linear_probe@lp
+
+method: concatenation
+run_ids:
+#  - SUB-928 #G from SUB-849
+  - SUB-927 #G from SUB-916
+#  - SUB-929 #from SUB-920
+#  - SUB-930 #from SUB-919

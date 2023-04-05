@@ -1,0 +1,20 @@
+defaults:
+  - submask
+  - _self_
+
+
+
+main:
+  info: submask.clip
+
+dl:
+  epochs: 32
+  lr: 10
+  scheduler: cosine
+
+
+model:
+  pret:
+    name: openai/clip-vit-base-patch32
+    source: clip
+    train_layers: ['k_proj','v_proj','q_proj','out_proj','mlp.fc1','mlp.fc2']

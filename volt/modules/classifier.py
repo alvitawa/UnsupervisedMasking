@@ -1,7 +1,9 @@
+import pickle
 from dataclasses import dataclass
 
 import numpy as np
 import torch
+from pathlib import Path
 from torch import nn
 from torch.optim.lr_scheduler import StepLR
 from tqdm import tqdm
@@ -76,8 +78,10 @@ class MultiHeadMlp(nn.Module):
 
 
 class ClassifierModule(DeepLearningModule):
-    def __init__(self, fc_in_features, *args, **kwargs):
+    def __init__(self, fc_in_features, fc, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.fc_in_features = fc_in_features
 
         # assert all(isinstance(dataset, ClassDataset) for dataset in self.dataset.values())
 
@@ -105,33 +109,41 @@ class ClassifierModule(DeepLearningModule):
             self.fc = submasking.MaskedLinear(fc_in_features, len(self.dataset['train'].label_names),
                                               self.cfg.cls.fc_score_init)
         elif self.cfg.cls.fc == 'probed':
-            if self.cfg.main.in_mvp:
-                # During mvp some labels may be missing from the training set causing the matrix shape
-                # to be wrong so just make a new one with the right shape as the values dont matter anyways
-                # during mvp.
-                w = torch.randn(fc_in_features, len(self.dataset['train'].label_names))
-                b = torch.randn(len(self.dataset['train'].label_names))
-            else:
-                task = Task('Probing').start()
-                r, score = linear_probe.probe(self.cfg, self, fc_in_features, self.forward_dataloader('train_unaugmented'),
-                                              self.device_, bias=True)
-                task.done()
-
-                w, b = r
-
-            self.fc = torch.nn.Linear(fc_in_features, len(self.dataset['train'].label_names), bias=True)
-            self.fc.weight.data = torch.tensor(w.T).float()
-            self.fc.weight.requires_grad = False
-            self.fc.bias.data = torch.tensor(b).float()
-            self.fc.bias.requires_grad = False
-
+            self.probe()
         elif self.cfg.cls.fc in ['positive', 'negative', 'dual']:
             positive = self.cfg.cls.fc in ['positive', 'dual']
             negative = self.cfg.cls.fc in ['negative', 'dual']
             self.fc = submasking.MaskedConstantLayer(fc_in_features, len(self.dataset['train'].label_names),
                                                      self.cfg.cls.fc_score_init, positive, negative)
+        elif self.cfg.cls.fc == 'pret':
+            self.fc = fc
+        elif self.cfg.cls.fc == 'pret_submasked':
+            self.fc = submasking.SubmaskedModel(fc, scores_init=submasking.normal_scores_init(self.cfg.cls.fc_score_init, 0), shell_mode='replace').to(self.device_)
         else:
             self.with_fc = False
+
+    def probe(self):
+        if self.cfg.main.in_mvp:
+            # During mvp some labels may be missing from the training set causing the matrix shape
+            # to be wrong so just make a new one with the right shape as the values dont matter anyways
+            # during mvp.
+            w = torch.randn(self.fc_in_features, len(self.dataset['train'].label_names))
+            b = torch.randn(len(self.dataset['train'].label_names))
+        else:
+            task = Task('Probing').start()
+            r, score = linear_probe.probe(self.cfg, self, self.fc_in_features, self.forward_dataloader('train_unaugmented'),
+                                          self.device_, bias=True)
+            task.done()
+
+            w, b = r
+
+        self.fc = torch.nn.Linear(self.fc_in_features, len(self.dataset['train'].label_names), bias=True)
+        self.fc.weight.data = torch.tensor(w.T).float()
+        self.fc.weight.requires_grad = False
+        self.fc.bias.data = torch.tensor(b).float()
+        self.fc.bias.requires_grad = False
+
+        self.with_fc = True
 
     def knn_analysis(self, embedding, targets, feature_bank, feature_labels, namespace, bank=''):
 
@@ -186,9 +198,11 @@ class ClassifierModule(DeepLearningModule):
                             out = self.forward(data)
                             test_outputs.append({'embedding': out, 'target': target})
                     test_outputs = util.concat_dict_list(test_outputs)
+                    embedding_unnorm = test_outputs['embedding'].to(self.device)
                     embedding = nn.functional.normalize(test_outputs['embedding'], dim=1, p=2).to(self.device)
                     targets = test_outputs['target'].to(self.device)
                 else:
+                    embedding_unnorm = outputs['embedding'].to(self.device)
                     embedding = nn.functional.normalize(outputs['embedding'], dim=1, p=2).to(self.device)
                     targets = outputs['target'].to(self.device)
 
@@ -204,10 +218,26 @@ class ClassifierModule(DeepLearningModule):
 
                 train_outputs = util.concat_dict_list(train_outputs)
 
+                feature_bank_unnorm = train_outputs['embedding'].T.contiguous().to(self.device)
                 feature_bank = nn.functional.normalize(train_outputs['embedding'], dim=1, p=2).T.contiguous().to(
                     self.device)
                 feature_labels = train_outputs['target'].to(self.device)
                 self.knn_analysis(embedding, targets, feature_bank, feature_labels, namespace, bank='_mem_train')
+
+                if not self.cfg.main.in_mvp:
+                    # if not self.cfg.main.train:
+                    #     if self.cfg.main.load_checkpoint != '':
+                    #         print('Must load the checkpoint if not training to save embeddings')
+                    #     run_id = Path(self.cfg.main.load_checkpoint).parent.name
+                    # else:
+                    #     run_id = self.logger_.experiment.get_url().split('/')[-1]
+                    run_id = self.logger_.experiment.get_url().split('/')[-1]
+                    file = Path(self.cfg.main.checkpoint_path, run_id, 'embeddings.pkl')
+                    file.parent.mkdir(parents=True, exist_ok=True)
+                    pickle.dump((feature_bank, feature_labels, embedding, targets, self.dataset['train'].label_names),
+                                open(file, 'wb'))
+                    file_unnorm = Path(self.cfg.main.checkpoint_path, run_id, 'embeddings_unnorm.pkl')
+                    pickle.dump((feature_bank_unnorm, embedding_unnorm), open(file_unnorm, 'wb'))
 
     def training_step(self, batch, batch_idx, namespace='train'):
         data, target = batch
@@ -241,6 +271,16 @@ class ClassifierModule(DeepLearningModule):
                 lr=self.learning_rate,
                 weight_decay=weight_decay,
                 momentum=self.cfg.dl.momentum)
+        elif self.cfg.dl.optimizer == 'adamw':
+            assert self.cfg.cls.head_scale_lr is True and self.cfg.cls.head_scale_wd is True
+            assert self.cfg.cls.head_lr == 1 and self.cfg.cls.head_wd == 1
+            optimizer = torch.optim.AdamW(
+                [{'params': self.model.parameters()},
+                 {'params': head_params}],
+                lr=self.learning_rate,
+                weight_decay=self.cfg.dl.weight_decay,
+                betas=self.cfg.dl.betas,
+                eps=self.cfg.dl.eps)
         else:
             raise ValueError(f'Unknown optimizer {self.cfg.dl.optimizer}')
 

@@ -284,7 +284,7 @@ class MultiCropDataset(SliceableDataset):
                          ] * nmb_crops[i])
         self.trans = trans
 
-        self.untransform = transforms.Compose([
+        self.inverse_transform = transforms.Compose([
             util.UnNormalize(mean=mean, std=std),
             transforms.ToPILImage()
         ])
@@ -304,7 +304,7 @@ class MultiCropDataset(SliceableDataset):
         return multi_crops, label
 
     def untransform(self, x):
-        return self.untransform(x)
+        return self.inverse_transform(x)
 
 
 class PILRandomGaussianBlur(object):
@@ -365,17 +365,29 @@ def get_multicrop_dataset(cfg):
             root=cfg.main.data_path, train=True, download=True, transform=test_transform)
         val_dataset_unaugmented = torchvision.datasets.CIFAR10(
             root=cfg.main.data_path, train=False, download=True, transform=test_transform)
+    elif dataset_name == 'multicrop_cifar100':
+        train_dataset = torchvision.datasets.CIFAR100(
+            root=cfg.main.data_path, train=True, download=True
+        )
+        val_dataset = torchvision.datasets.CIFAR100(
+            root=cfg.main.data_path, train=False, download=True
+        )
 
-        train_dataset = ClassDataset(train_dataset, nn.Identity(), nn.Identity(), labels=range(10),
-                                     label_names=train_dataset.classes)
-        val_dataset = ClassDataset(val_dataset, nn.Identity(), nn.Identity(), labels=range(10),
-                                   label_names=val_dataset.classes)
-        train_dataset_unaugmented = ClassDataset(train_dataset_unaugmented, nn.Identity(), nn.Identity(),
-                                                 labels=range(10), label_names=train_dataset_unaugmented.classes)
-        val_dataset_unaugmented = ClassDataset(val_dataset_unaugmented, nn.Identity(), nn.Identity(),
-                                                  labels=range(10), label_names=val_dataset_unaugmented.classes)
+        train_dataset_unaugmented = torchvision.datasets.CIFAR100(
+            root=cfg.main.data_path, train=True, download=True, transform=test_transform)
+        val_dataset_unaugmented = torchvision.datasets.CIFAR100(
+            root=cfg.main.data_path, train=False, download=True, transform=test_transform)
     else:
         raise NotImplementedError()
+
+    train_dataset = ClassDataset(train_dataset, nn.Identity(), nn.Identity(), labels=range(10),
+                                 label_names=train_dataset.classes)
+    val_dataset = ClassDataset(val_dataset, nn.Identity(), nn.Identity(), labels=range(10),
+                               label_names=val_dataset.classes)
+    train_dataset_unaugmented = ClassDataset(train_dataset_unaugmented, nn.Identity(), nn.Identity(),
+                                             labels=range(10), label_names=train_dataset_unaugmented.classes)
+    val_dataset_unaugmented = ClassDataset(val_dataset_unaugmented, nn.Identity(), nn.Identity(),
+                                           labels=range(10), label_names=val_dataset_unaugmented.classes)
 
     train_dataset_mc = MultiCropDataset(train_dataset, cfg.swav.size_crops, cfg.swav.nmb_crops,
                                         cfg.swav.min_scale_crops, cfg.swav.max_scale_crops)

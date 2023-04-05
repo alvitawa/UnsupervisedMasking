@@ -1,0 +1,25 @@
+
+The pass-through trick has been used in several ways:
+    Fields:
+        - Continual learning (piggybank, supsup, NASpaper)
+        - Pruning (movement pruning, block movement pruning)
+        - Novelty NN architectures (binary connect, ternary neural networks, whats hidden in a r.w. net)
+    Essential properties:
+        - Exceptional in finding domain-specific subnetworks that are cheap to store and switch to.
+
+Increasing interest in different ways to do fine-tuning:
+    Methods:
+        - Full FT
+        - Linear Probe
+        - Prompt Learning
+        - Grafting
+    Motivation:
+        - Given the increased availabilty of (large) pretrained models or foundation models, it is important to be able to fine-tune them to a new task.
+
+Self-supervised learning:
+    Uses:
+        - Pretraining (SWAV, MOcO, DINO)
+        - Domain adaptation by Pretraining twice (Don't Stop Pretraining)
+        - Label-sparsity
+    Advantages:
+        - Allow the use of unlabeled data

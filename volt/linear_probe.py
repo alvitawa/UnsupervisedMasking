@@ -21,19 +21,8 @@ class LinearProbeConfig:
 
 config.register('linear_probe', LinearProbeConfig)
 
-
-def probe(cfg, backbone, out_dim, dataloader, device, bias=True):
-    backbone.eval()
-    backbone = backbone.to(device)
-
-    with torch.no_grad():
-        X, y = [], []
-        for x, label in tqdm(dataloader, desc='Embeddings for LP'):
-            X.append(backbone(x.to(device)).cpu())
-            y.append(label)
-        X = torch.cat(X).numpy().astype('float64')
-        y = torch.cat(y).numpy()
-
+def probe_(cfg, X, y, bias=True):
+    # import pdb; pdb.set_trace()
     classifier = Classifier(loss="multiclass-logistic", penalty="l2", fit_intercept=False,
                             tol=cfg.lp.tol,
                             solver=cfg.lp.solver,
@@ -55,3 +44,17 @@ def probe(cfg, backbone, out_dim, dataloader, device, bias=True):
         r = r[:-1]
         return (r, b), score
     return r, score
+
+def probe(cfg, backbone, out_dim, dataloader, device, bias=True):
+    backbone.eval()
+    backbone = backbone.to(device)
+
+    with torch.no_grad():
+        X, y = [], []
+        for x, label in tqdm(dataloader, desc='Embeddings for LP'):
+            X.append(backbone(x.to(device)).cpu())
+            y.append(label)
+        X = torch.cat(X).numpy().astype('float64')
+        y = torch.cat(y).numpy()
+    return probe_(cfg, X, y, bias)
+

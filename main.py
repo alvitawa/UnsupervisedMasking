@@ -65,6 +65,7 @@ class MainConfig:
     validate: bool = True
     dataset: str = 'mnist'
     dataset_subset: str = ''  # 50p -> 50%, 4000 -> 4k labels
+    dataset_subset_labels: str = ''
     data_path: str = 'data'
     checkpoint_path: str = 'data/models/checkpoints'
     load_checkpoint: str = ''
@@ -284,6 +285,50 @@ def train(cfg, mvp=False):
         subset_unaugmented.inverse_transform = train_dataset_unaugmented.inverse_transform
         assert len(subset_unaugmented) == n
         train_dataset_unaugmented = subset_unaugmented
+    elif cfg.main.dataset_subset_labels != '':
+        subset_labels = cfg.main.dataset_subset_labels.split(':')
+        label_indexes = list(train_dataset.label_names.index(label) for label in subset_labels)
+
+        # The index returned by the dataset always refers to the absolute index in the dataset
+        # even after subsetting.
+        train_subset_indexes = list(index for index, multi_crops, label in train_dataset if label in label_indexes)
+        val_subset_indexes = list(index for index, multi_crops, label in val_dataset if label in label_indexes)
+
+        subset = torch.utils.data.Subset(train_dataset, train_subset_indexes)
+        # Hack to make the subset behave like a classdataset
+        subset.label_names = train_dataset.label_names
+        subset.untransform = train_dataset.untransform
+        subset.classes = train_dataset.classes
+        subset.labels = train_dataset.labels
+        subset.inverse_transform = train_dataset.inverse_transform
+        train_dataset = subset
+
+        subset_unaugmented = torch.utils.data.Subset(train_dataset_unaugmented, train_subset_indexes)
+        # Hack to make the subset behave like a classdataset
+        subset_unaugmented.label_names = train_dataset_unaugmented.label_names
+        subset_unaugmented.untransform = train_dataset_unaugmented.untransform
+        subset_unaugmented.classes = train_dataset_unaugmented.classes
+        subset_unaugmented.labels = train_dataset_unaugmented.labels
+        subset_unaugmented.inverse_transform = train_dataset_unaugmented.inverse_transform
+        train_dataset_unaugmented = subset_unaugmented
+
+        subset = torch.utils.data.Subset(val_dataset, val_subset_indexes)
+        # Hack to make the subset behave like a classdataset
+        subset.label_names = val_dataset.label_names
+        subset.untransform = val_dataset.untransform
+        subset.classes = val_dataset.classes
+        subset.labels = val_dataset.labels
+        subset.inverse_transform = val_dataset.inverse_transform
+        val_dataset = subset
+
+        subset_unaugmented = torch.utils.data.Subset(val_dataset_unaugmented, val_subset_indexes)
+        # Hack to make the subset behave like a classdataset
+        subset_unaugmented.label_names = val_dataset_unaugmented.label_names
+        subset_unaugmented.untransform = val_dataset_unaugmented.untransform
+        subset_unaugmented.classes = val_dataset_unaugmented.classes
+        subset_unaugmented.labels = val_dataset_unaugmented.labels
+        subset_unaugmented.inverse_transform = val_dataset_unaugmented.inverse_transform
+        val_dataset_unaugmented = subset_unaugmented
 
     logger.experiment[f'global/data/train/size'] = len(train_dataset) if train_dataset is not None else 0
     logger.experiment[f'global/data/val/size'] = len(val_dataset) if val_dataset is not None else 0
@@ -348,19 +393,18 @@ def train(cfg, mvp=False):
 
                 r = None
 
-                if cfg.model.clip.submask_backbone:
-                    if 'k_proj' in name:
-                        r = ['mask', 'k_proj']
-                    elif 'v_proj' in name:
-                        r = ['mask', 'v_proj']
-                    elif 'q_proj' in name:
-                        r = ['mask', 'q_proj']
-                    elif 'out_proj' in name:
-                        r = ['mask', 'out_proj']
-                    elif 'mlp.fc1' in name:
-                        r = ['mask', 'mlp.fc1']
-                    elif 'mlp.fc2' in name:
-                        r = ['mask', 'mlp.fc2']
+                if 'k_proj' in name:
+                    r = ['mask', 'k_proj']
+                elif 'v_proj' in name:
+                    r = ['mask', 'v_proj']
+                elif 'q_proj' in name:
+                    r = ['mask', 'q_proj']
+                elif 'out_proj' in name:
+                    r = ['mask', 'out_proj']
+                elif 'mlp.fc1' in name:
+                    r = ['mask', 'mlp.fc1']
+                elif 'mlp.fc2' in name:
+                    r = ['mask', 'mlp.fc2']
 
                 if cfg.model.clip.submask_head:
                     if 'projection' in name:
@@ -438,24 +482,71 @@ def train(cfg, mvp=False):
             #                               num_classes=len(train_dataset.label_names))
             # else:
             #     model = timm.create_model(cfg.model.pret.name, pretrained=True)
+        elif cfg.model.pret.source == 'clip':
+            code = cfg.model.pret.name
+            clip = AutoModel.from_pretrained(code).to(device)
+            if cfg.model.clip.freeze_backbone:
+                for param in clip.parameters():
+                    param.requires_grad = False
+                for param in clip.visual_projection.parameters():
+                    param.requires_grad = True
+
+            embedding_size = clip.visual_projection.out_features
+
+            print('CLIP', code, embedding_size)
+            prompts = list(f"This is a photo of a {label}" for label in train_dataset.label_names)
+            processor = AutoProcessor.from_pretrained("openai/clip-vit-base-patch32")
+            prompt_tokens = processor(text=prompts, return_tensors="pt", padding=True).input_ids
+            prompt_embeds = clip.get_text_features(prompt_tokens.to(device)).detach()
+
+            class Contrastive(nn.Module):
+                def __init__(self, clip, prompt_embeds):
+                    super().__init__()
+                    self.prompt_embeds = prompt_embeds
+                    self.prompt_embeds.requires_grad = False
+                    self.logit_scale = clip.logit_scale.to(device)
+                    self.logit_scale.requires_grad = False
+                    self.projection = clip.visual_projection.to(device)
+
+                def forward(self, backbone_output):
+                    output = self.projection(backbone_output)
+                    contrast = torch.nn.functional.cosine_similarity(output[:, None], self.prompt_embeds[None, :],
+                                                                     dim=2)
+                    contrast *= self.logit_scale.exp()
+                    return contrast
+
+            fc = Contrastive(clip, prompt_embeds)
+            # fc = torch.nn.Linear(embedding_size, len(train_dataset.label_names), bias=False)
+            # fc.weight.data = prompt_embeds
+            print('Computed prompt embeddings')
+
+            model = LambdaModule(lambda x, vision_model: vision_model(x, return_dict=False)[1],
+                                 vision_model=clip.vision_model)
+            fc_name = None
+            fc_in_features = clip.visual_projection.in_features
         else:
             raise ValueError(f"Unknown source {cfg.model.pret.source}")
 
-        if not cfg.model.pret.pretrained_head:
-            if cfg.model.pret.head_type == 'linear':
-                assert cfg.model.pret.head_init == 'kaiming_uniform'
-                head = torch.nn.Linear(fc_in_features, len(train_dataset.label_names))
-            elif cfg.model.pret.head_type == 'dual':
-                # sum of 2 heads, one with all ones and other with all -1, is full-featured when trained with masking
-                raise NotImplementedError()
-            elif cfg.model.pret.head_type == 'identity':
-                head = torch.nn.Identity()
-            else:
-                raise ValueError(f"Unknown head type {cfg.model.pret.head_type}")
-
+        # if not cfg.model.pret.pretrained_head:
+        #     if cfg.model.pret.head_type == 'linear':
+        #         assert cfg.model.pret.head_init == 'kaiming_uniform'
+        #         head = torch.nn.Linear(fc_in_features, len(train_dataset.label_names))
+        #     elif cfg.model.pret.head_type == 'dual':
+        #         # sum of 2 heads, one with all ones and other with all -1, is full-featured when trained with masking
+        #         raise NotImplementedError()
+        #     elif cfg.model.pret.head_type == 'identity':
+        #         head = torch.nn.Identity()
+        #     else:
+        #         raise ValueError(f"Unknown head type {cfg.model.pret.head_type}")
+        #
+        #     model.__setattr__(fc_name, head)
+        assert not cfg.model.pret.pretrained_head
+        assert cfg.model.pret.head_type == 'identity'
+        head = torch.nn.Identity()
+        if fc_name is not None:
+            fc = model.__getattr__(fc_name)
             model.__setattr__(fc_name, head)
 
-        # check with regex if it is one of the normal resnet models
         if re.match(r"(dino_)?resnet\d+", cfg.model.pret.name):
             def par_sel(name, param):
                 if not param.requires_grad:
@@ -468,6 +559,28 @@ def train(cfg, mvp=False):
                 if 'fc' in name:
                     return cfg.model.pret.head, name
                 return 'freeze'
+        elif cfg.model.pret.source == 'clip':
+            def par_sel(name, param):
+                if not param.requires_grad:
+                    return 'freeze'
+
+                r = None
+                for l in cfg.model.pret.train_layers:
+                    if l in name:
+                        assert not any(
+                            l2 in name for l2 in cfg.model.pret.train_layers if l != l2), 'Ambiguity in layer names'
+                        r = [cfg.model.pret.backbone, name]
+                        break
+
+                if r is None:
+                    return 'freeze'
+
+                if 'weight' in name:
+                    r[1] += '.weight'
+                elif 'bias' in name:
+                    r[1] += '.bias'
+
+                return r
         else:
             weight_summary = ""
             for name, param in model.named_parameters():
@@ -514,10 +627,11 @@ def train(cfg, mvp=False):
         #     import pdb; pdb.set_trace()
 
         if cfg.model.pret.module == 'classifier':
-            module = classifier.ClassifierModule(fc_in_features, cfg, model, device, logger, train_dataset, val_dataset,
+            module = classifier.ClassifierModule(fc_in_features, fc, cfg, model, device, logger, train_dataset,
+                                                 val_dataset,
                                                  test_dataset, train_dataset_unaugmented)
         elif cfg.model.pret.module == 'swav':
-            module = ssl.SWAVModule(fc_in_features, cfg, model, device, logger, train_dataset, val_dataset,
+            module = ssl.SWAVModule(fc_in_features, fc, cfg, model, device, logger, train_dataset, val_dataset,
                                     test_dataset, train_dataset_unaugmented, val_dataset_unaugmented)
         else:
             raise ValueError(f"Unknown module {cfg.model.pret.module}")
@@ -652,45 +766,24 @@ def train(cfg, mvp=False):
         last_ckpt_path = checkpoint_path + '/' + 'last.ckpt'
         load_model_checkpoint(last_ckpt_path, module)
 
+    if cfg.main.probe:
+        module.probe()
+
     if cfg.main.validate:
         trainer.validate(module)
 
     if cfg.main.train:
-        assert not cfg.main.probe
         trainer.fit(module)
 
         best_model_path = checkpoint_callback.best_model_path
         logger.experiment[f'training/model/best_model_path'] = best_model_path
 
     if cfg.main.test:
-        assert not cfg.main.probe
         # if not cfg.main.train:
         #     best_model_path = logger.experiment['training/model/best_model_path'].fetch()
         # if cfg.main.train:
         #     load_model_checkpoint(best_model_path, module)
         trainer.test(module)
-
-    if cfg.main.probe:
-        assert not cfg.main.train and not cfg.main.test
-        assert cfg.main.model == 'pret'
-        # if cfg.model.pret.module == 'swav':
-        #     fc_in_features = cfg.swav.feat_dim
-        # else:
-        #     raise NotImplementedError()
-
-        model = module.model
-        for param in model.parameters():
-            param.requires_grad = False
-
-        lp_cfg = copy.deepcopy(cfg)
-        lp_cfg.cls = lp_cfg.lp.cls
-
-        assert lp_cfg.cls.fc != ''
-
-        lp_module = classifier.ClassifierModule(fc_in_features, lp_cfg, model, device, logger, train_dataset,
-                                                val_dataset, test_dataset)
-
-        trainer.fit(lp_module)
 
     torch.cuda.empty_cache()
     gc.collect()

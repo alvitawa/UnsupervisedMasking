@@ -7,6 +7,8 @@ main:
   model: pret
   dataset: cifar10pgn
   info: full.ft
+  verbose: 0
+  save_top_k: 0
 
 dl:
   epochs: 150

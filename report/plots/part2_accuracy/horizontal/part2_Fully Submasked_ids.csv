@@ -1,0 +1,3 @@
+	cifar10	cifar100	dtd	eurosat	flowers	oxfordpets	sun397	ucf101
+rn18-timm	SUB-791	SUB-820	SUB-797	SUB-798	SUB-789	SUB-794	SUB-790	SUB-795
+rn50-swav	SUB-781	SUB-844	SUB-787	SUB-788	SUB-779	SUB-784	SUB-780	SUB-786

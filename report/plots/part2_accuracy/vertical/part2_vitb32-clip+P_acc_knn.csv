@@ -1,0 +1,9 @@
+vitb32-clip+P	Submasked
+cifar10	0.97 ± 0.00_1
+cifar100	0.82 ± 0.00_1
+dtd	0.72 ± 0.00_1
+eurosat	
+flowers	0.92 ± 0.00_1
+oxfordpets	0.84 ± 0.00_1
+sun397	0.66 ± 0.00_1
+ucf101	0.79 ± 0.00_1

@@ -4,6 +4,7 @@ import numpy as np
 import torch
 from torch import nn
 
+from subnetworks import MaskedLinear, submasking, SubmaskedModel
 from volt import config
 from volt.modules.classifier import ClassifierModule
 
@@ -36,6 +37,8 @@ class SWAVConfig:
     freeze_prototypes_niters: int = 5005 #313
     epsilon: float = 0.05
     sinkhorn_iterations: int = 3
+    fc: str = 'linear'
+    prototypes: str = 'linear'
 
 
 
@@ -48,6 +51,9 @@ class SWAVModule(ClassifierModule):
     def __init__(self, fc_in_features, *args, **kwargs):
         super().__init__(fc_in_features, *args, **kwargs)
 
+        self.args = args
+        self.kwargs = kwargs
+
         # assert self.cfg.cls.loss == ''
         # assert self.cfg.cls.fc == ''
 
@@ -57,7 +63,17 @@ class SWAVModule(ClassifierModule):
         #     self.prototypes = MultiPrototypes(self.cfg.swav.feat_dim, self.cfg.swav.nmb_prototypes)
         # el
         if self.cfg.swav.nmb_prototypes > 0:
-            self.prototypes = nn.Linear(self.cfg.swav.feat_dim, self.cfg.swav.nmb_prototypes, bias=False)
+            if self.cfg.swav.prototypes == 'linear':
+                self.prototypes = nn.Linear(self.cfg.swav.feat_dim, self.cfg.swav.nmb_prototypes, bias=False)
+            elif self.cfg.swav.prototypes == 'masked':
+                # lin = nn.Linear(self.cfg.swav.feat_dim, self.cfg.swav.nmb_prototypes, bias=False).to(self.device_)
+                # sc_init = submasking.normal_scores_init(1, 0)
+                # self.prototypes = SubmaskedModel(lin, shell_mode='replace', scores_init=sc_init)
+                self.prototypes = MaskedLinear(self.cfg.swav.feat_dim, self.cfg.swav.nmb_prototypes, 1)
+                with torch.no_grad():
+                    w = self.prototypes.W.weight.data.clone()
+                    w = nn.functional.normalize(w, dim=1, p=2)
+                    self.prototypes.W.weight.copy_(w)
 
         self.queue = None
         # the queue needs to be divisible by the batch size
@@ -65,12 +81,32 @@ class SWAVModule(ClassifierModule):
 
         self.use_the_queue = False
 
-        self.fc = nn.Linear(fc_in_features, self.cfg.swav.feat_dim)
-        self.fc_in_features = fc_in_features
+        if self.cfg.swav.fc == 'linear':
+            self.fc = nn.Linear(fc_in_features, self.cfg.swav.feat_dim)
+        elif self.cfg.swav.fc == 'masked':
+            lin = nn.Linear(fc_in_features, self.cfg.swav.feat_dim).to(self.device_)
+            sc_init = submasking.normal_scores_init(1, 0)
+            self.fc = SubmaskedModel(lin, shell_mode='replace', scores_init=sc_init)
+
 
     # def dataloader(self, namespace, shuffle):
     #     return DataLoader(self.multicrop_dataset[namespace], batch_size=self.cfg.dl.batch_size, shuffle=shuffle,
     #                       num_workers=self.cfg.dl.num_workers)
+
+    def probe(self):
+        self.supercast()
+        super().probe()
+
+        # change the class as well
+        # self.__class__ = ClassifierModule
+
+    def supercast(self):
+        self.training_step = super().training_step
+        self.configure_optimizers = super().configure_optimizers
+        self.on_train_epoch_start = super().on_train_epoch_start
+        self.on_after_backward = super().on_after_backward
+        super().__init__(self.fc.in_features, *self.args, **self.kwargs)
+
 
     def configure_optimizers(self, _head_params=None):
         # From self.fc and self.prototypes
@@ -88,7 +124,7 @@ class SWAVModule(ClassifierModule):
     def training_step(self, batch, batch_idx, namespace='train'):
         index, multi_crops, _label = batch
 
-        if namespace == 'train':
+        if namespace == 'train' and self.cfg.swav.prototypes == 'linear':
             # normalize the prototypes
             with torch.no_grad():
                 w = self.prototypes.weight.data.clone()
@@ -134,10 +170,11 @@ class SWAVModule(ClassifierModule):
                 if self.queue is not None:
                     if self.use_the_queue or not torch.all(self.queue[i, -1, :] == 0):
                         self.use_the_queue = True
-                        out = torch.cat((torch.mm(
-                            self.queue[i],
-                            self.prototypes.weight.t()
-                        ), out))
+                        # out = torch.cat((torch.mm(
+                        #     self.queue[i],
+                        #     self.prototypes.weight.t()
+                        # ), out))
+                        out = torch.cat((self.prototypes(self.queue[i]), out))
                     # fill the queue
                     self.queue[i, bs:] = self.queue[i, :-bs].clone()
                     self.queue[i, :bs] = embedding[crop_id * bs: (crop_id + 1) * bs]

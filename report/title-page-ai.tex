@@ -220,6 +220,9 @@
     \section{Ensembling}
     Ensembles of smaller models appear to outperform larger models.~\cite{kondratyukWhenEnsemblingSmaller2020}
 
+    \chapter{Grafting}
+    Instead of only zeroing out weights based on a mask, the pass through trick can also be used to toggle a weight between 'fine tuned' and 'pretrained'. This paper does a more complicated version of this without the pass-through trick~\cite{panigrahiTaskSpecificSkillLocalization2023}.
+    
     \chapter{Method}
 
     \section{SGD is an EMA}
@@ -282,7 +285,7 @@
     Note that the conclusion still holds when momentum is enabled
     \chapter{Experiments}
 
-    \includegraphics[width=1.0\textwidth]{plots/variant_sparsity.pdf}
+    \includegraphics[width=1.0\textwidth]{./plots/resnet_model_size/resnet_model_size}
 
 %% https://latexdraw.com/plot-a-function-and-data-in-latex/
 %    \pgfplotstableread{plots/plot_data/variant_sparsity.csv}{\table}

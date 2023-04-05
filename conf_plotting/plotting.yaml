@@ -1,0 +1,88 @@
+
+plot:
+#  - variant_sparsity
+#  - resnet_model_size
+  - part2_tables
+
+variant_sparsity:
+  runs:
+    - SUB-210
+    - SUB-213
+    - SUB-214
+  frees:
+    - SUB-209
+    - SUB-208
+    - SUB-207
+
+resnet_model_size:
+  runs:
+    - SUB-215
+    - SUB-216
+    - SUB-217
+    - SUB-218
+  constrained_sparsity_runs:
+    -
+      model: resnet18
+      runs:
+        - SUB-300
+        - SUB-299
+        - SUB-298
+        - SUB-295
+        - SUB-294
+        - SUB-293
+        - SUB-292
+
+part2_tables:
+  -
+    name: Full Fine-Tuning
+    anchors:
+      rn18-timm:
+       - SUB-819
+      rn50-swav:
+        - SUB-847
+    manuals:
+      vitb32-clip:
+        cifar10: 0.958
+        cifar100: 0.821
+        dtd: 0.723
+        eurosat: 0.979
+        flowers: 0.974
+        oxfordpets: 0.885
+        sun397: 0.640
+        ucf101: 0.809
+  -
+    name: Submasked
+    anchors:
+      rn18-timm:
+       - SUB-820
+      rn50-swav:
+       - SUB-779
+#      vitb32-clip:
+#        - SUB-890
+      vitb32-clip:
+#        - SUB-896
+        - SUB-945
+  -
+    name: Linear Probe
+    anchors:
+      rn18-timm:
+       - SUB-821
+       - SUB-647
+       - SUB-665
+      rn50-swav:
+       - SUB-862
+    manuals:
+      vitb32-clip:
+        cifar10: 0.950
+        cifar100: 0.800
+        dtd: 0.746
+        eurosat: 0.953
+        flowers: 0.969
+        oxfordpets: 0.892
+        sun397: 0.750
+        ucf101: 0.833
+
+#free_runs:
+  #rn18
+
+

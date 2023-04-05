@@ -1,0 +1,25 @@
+defaults:
+  - baseline
+  - _self_
+
+
+main:
+  info: baseline.clip
+
+#https://github.com/mlfoundations/open_clip/blob/adbf326abbabd361d8563da375e49a8e4b281d38/src/training/params.py
+dl:
+  epochs: 32
+  scheduler: cosine
+  lr: 5.0e-4
+  weight_decay: 0.2
+  optimizer: adamw
+
+
+model:
+  pret:
+    name: openai/clip-vit-base-patch32
+    source: clip
+    train_layers: ['k_proj','v_proj','q_proj','out_proj','mlp.fc1','mlp.fc2']
+
+
+

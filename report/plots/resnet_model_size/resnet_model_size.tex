@@ -1,0 +1,63 @@
+% arara: pdflatex
+\documentclass[12pt]{standalone}
+
+\usepackage{tikz,pgf} %and any other packages or tikzlibraries your picture needs
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\pgfplotsset{compat = newest}
+
+\begin{document}
+
+% https://latexdraw.com/plot-a-function-and-data-in-latex/
+\pgfplotstableread{resnet_model_size.csv}{\tablefree}
+\pgfplotstableread{constrained_sparsity_resnet18.csv}{\tableresnetet}
+
+\begin{tikzpicture}
+    \begin{axis}[
+        title={Accuracy vs remaining active weights},
+        xlabel={\% of active weights},
+        ylabel={Accuracy},
+        x dir=reverse,
+        xmin = 0.70, xmax = 0.90,
+        ymin = 0.90, ymax = 1,
+        xtick distance = 0.02,
+        ytick distance = 0.02,
+        xticklabel={\pgfmathparse{\tick*100}\pgfmathprintnumber{\pgfmathresult}\%},
+        grid = both,
+        minor tick num = 1,
+        major grid style = {lightgray},
+        minor grid style = {lightgray!25},
+        width = \textwidth,
+        height = 0.75\textwidth,
+        legend cell align = {left},
+        legend pos = south west,
+        mark size=3pt,
+        scatter/classes={%
+            resnet18={mark=o,draw=blue},
+            resnet26={mark=triangle,draw=red},
+            resnet34={mark=o,draw=teal},
+            resnet50={mark=triangle,draw=green}},
+        ]
+    ]
+%
+%
+%        \addplot[red] table [x = sparsity, y = {ssl_resnet18}] {\table};
+%
+%        \addplot[teal] table [x = sparsity, y = {skresnet18}] {\table};
+
+        \addplot+[scatter,only marks,scatter src=explicit symbolic] table [meta=model, x=sparsity, y=acc] {\tablefree};
+
+        \addplot[blue, mark=o, mark size=2pt] table [x = sparsity, y = acc] {\tableresnetet};
+        \legend{
+            ResNet18 (free),
+            ResNet26 (free),
+            ResNet34 (free),
+            ResNet50 (free),
+            ResNet18 (constrained),
+        }
+
+    \end{axis}
+
+\end{tikzpicture}
+
+\end{document}

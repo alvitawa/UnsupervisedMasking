@@ -31,6 +31,8 @@ class DeepLearningConfig:
     optimizer: str = 'adam'
     lr: float = 0.0001
     weight_decay: float = 0
+    betas: tuple = (0.9, 0.98)
+    eps: float = 1e-6
     momentum: float = 0
     scheduler: str = 'none'
     scheduler_step: int = 50
