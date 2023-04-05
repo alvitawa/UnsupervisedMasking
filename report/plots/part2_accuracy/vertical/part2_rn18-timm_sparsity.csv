@@ -1,9 +1,0 @@
-rn18-timm	Submasked
-cifar10	0.15 ± 0.00_1
-cifar100	0.36 ± 0.00_1
-dtd	0.07 ± 0.00_1
-eurosat	0.07 ± 0.00_1
-flowers	0.07 ± 0.00_1
-oxfordpets	0.04 ± 0.00_1
-sun397	0.32 ± 0.00_1
-ucf101	0.11 ± 0.00_1
