@@ -1,0 +1,17 @@
+#!/bin/bash
+
+#--nodes=1 --ntasks=1 --cpus-per-task=18 --gpus=1 --partition=gpu --time=24:00:00 --cpus-per-task=18
+
+#SBATCH --job-name=TRAIN
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=18
+#SBATCH --gpus=1
+#SBATCH --time=48:00:00
+#SBATCH --partition=gpu
+#SBATCH --output=out/slurm_%A.out
+
+source load.sh
+export XTRACE=0
+
+python3 main.py --config-name=submask_lin model.pret.source=hub model.pret.name=resnet50 model.pret.module=swav main.dataset=multicrop_cifar100 dl.scheduler=cosine cls.head_lr=0.15 cls.head_wd=0.000001 swav.queue_length=512 swav.epoch_queue_starts=176 swav.nmb_prototypes=500 dl.scheduler=cosine main.dataset_subset_clusters_file=notebook/output_clustersB.pt main.dataset_subset_cluster=1 dl.epochs=882 main.load_checkpoint=SUB-849/last.ckpt

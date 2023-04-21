@@ -66,6 +66,8 @@ class MainConfig:
     dataset: str = 'mnist'
     dataset_subset: str = ''  # 50p -> 50%, 4000 -> 4k labels
     dataset_subset_labels: str = ''
+    dataset_subset_clusters_file: str = ''
+    dataset_subset_cluster: int = 0
     data_path: str = 'data'
     checkpoint_path: str = 'data/models/checkpoints'
     load_checkpoint: str = ''
@@ -329,6 +331,28 @@ def train(cfg, mvp=False):
         subset_unaugmented.labels = val_dataset_unaugmented.labels
         subset_unaugmented.inverse_transform = val_dataset_unaugmented.inverse_transform
         val_dataset_unaugmented = subset_unaugmented
+    elif cfg.main.dataset_subset_clusters_file != '':
+        cluster_assignments = torch.load(cfg.main.dataset_subset_clusters_file)
+        train_subset_indexes = list(index for index in range(len(train_dataset)) if cluster_assignments[index] == cfg.main.dataset_subset_cluster)
+
+        subset = torch.utils.data.Subset(train_dataset, train_subset_indexes)
+        # Hack to make the subset behave like a classdataset
+        subset.label_names = train_dataset.label_names
+        subset.untransform = train_dataset.untransform
+        subset.classes = train_dataset.classes
+        subset.labels = train_dataset.labels
+        subset.inverse_transform = train_dataset.inverse_transform
+        train_dataset = subset
+
+        subset_unaugmented = torch.utils.data.Subset(train_dataset_unaugmented, train_subset_indexes)
+        # Hack to make the subset behave like a classdataset
+        subset_unaugmented.label_names = train_dataset_unaugmented.label_names
+        subset_unaugmented.untransform = train_dataset_unaugmented.untransform
+        subset_unaugmented.classes = train_dataset_unaugmented.classes
+        subset_unaugmented.labels = train_dataset_unaugmented.labels
+        subset_unaugmented.inverse_transform = train_dataset_unaugmented.inverse_transform
+        train_dataset_unaugmented = subset_unaugmented
+
 
     logger.experiment[f'global/data/train/size'] = len(train_dataset) if train_dataset is not None else 0
     logger.experiment[f'global/data/val/size'] = len(val_dataset) if val_dataset is not None else 0
@@ -482,6 +506,19 @@ def train(cfg, mvp=False):
             #                               num_classes=len(train_dataset.label_names))
             # else:
             #     model = timm.create_model(cfg.model.pret.name, pretrained=True)
+        elif cfg.model.pret.source == 'torch':
+            model_class = getattr(torchvision.models, cfg.model.pret.name)
+            if cfg.model.pret.name == 'resnet18':
+                weights = torchvision.models.ResNet18_Weights.IMAGENET1K_V1
+            elif cfg.model.pret.name == 'resnet50':
+                weights = torchvision.models.ResNet50_Weights.IMAGENET1K_V2
+            elif cfg.model.pret.name == 'wide_resnet50_2':
+                weights = torchvision.models.Wide_ResNet50_2_Weights.IMAGENET1K_V2
+            else:
+                raise ValueError(f"Unknown model {cfg.model.pret.name}")
+            model = model_class(weights=weights, progress=True)
+            fc_name = 'fc'
+            fc_in_features = model.fc.in_features
         elif cfg.model.pret.source == 'clip':
             code = cfg.model.pret.name
             clip = AutoModel.from_pretrained(code).to(device)

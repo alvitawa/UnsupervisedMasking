@@ -71,6 +71,10 @@ part2_tables:
        - SUB-665
       rn50-swav:
        - SUB-862
+      Zrn50-timm:
+       - SUB-960
+      Zrn50-torch:
+        - SUB-969
     manuals:
       vitb32-clip:
         cifar10: 0.950

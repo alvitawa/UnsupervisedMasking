@@ -14,6 +14,7 @@ from torchvision.transforms import transforms
 
 import pgn
 from pgn import datamodules
+from pgn.datasets.json_dataset import JSONDataset
 from volt import util
 
 
@@ -377,6 +378,42 @@ def get_multicrop_dataset(cfg):
             root=cfg.main.data_path, train=True, download=True, transform=test_transform)
         val_dataset_unaugmented = torchvision.datasets.CIFAR100(
             root=cfg.main.data_path, train=False, download=True, transform=test_transform)
+    elif dataset_name == 'multicrop_sun397':
+        train_dataset = JSONDataset(
+                json_path=os.path.join(cfg.main.data_path + '/sun397',
+                                       'split_zhou_SUN397.json'),
+                data_root=os.path.join(cfg.main.data_path + '/sun397', 'images'),
+                split='train',
+                transforms=torchvision.transforms.Compose([])
+            )
+        val_dataset = JSONDataset(
+                json_path=os.path.join(cfg.main.data_path + '/sun397',
+                                        'split_zhou_SUN397.json'),
+                data_root=os.path.join(cfg.main.data_path + '/sun397', 'images'),
+                split='test',
+                transforms=torchvision.transforms.Compose([])
+            )
+        train_dataset_unaugmented = JSONDataset(
+                json_path=os.path.join(cfg.main.data_path + '/sun397',
+                                        'split_zhou_SUN397.json'),
+                data_root=os.path.join(cfg.main.data_path + '/sun397', 'images'),
+                split='train',
+                transforms=test_transform
+            )
+        val_dataset_unaugmented = JSONDataset(
+                json_path=os.path.join(cfg.main.data_path + '/sun397',
+                                        'split_zhou_SUN397.json'),
+                data_root=os.path.join(cfg.main.data_path + '/sun397', 'images'),
+                split='test',
+                transforms=test_transform
+            )
+
+        train_dataset.classes = list(map(lambda x: x[0], sorted(train_dataset.class_to_idx.items(), key=lambda x: x[1])))
+        val_dataset.classes = list(map(lambda x: x[0], sorted(val_dataset.class_to_idx.items(), key=lambda x: x[1])))
+        train_dataset_unaugmented.classes = list(map(lambda x: x[0], sorted(train_dataset_unaugmented.class_to_idx.items(), key=lambda x: x[1])))
+        val_dataset_unaugmented.classes = list(map(lambda x: x[0], sorted(val_dataset_unaugmented.class_to_idx.items(), key=lambda x: x[1])))
+
+
     else:
         raise NotImplementedError()
 

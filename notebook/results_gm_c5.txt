@@ -1,0 +1,806 @@
+NC(2
+Cluster 0: 22972 samples
+Cluster 1: 27028 samples
+Mean: 0.8707600000000001
+(50000,) (50000,)
+ADJ=0.13919554284725383
+NC(3
+Cluster 0: 13609 samples
+Cluster 1: 12030 samples
+Cluster 2: 24361 samples
+Mean: 0.8125999999999999
+(50000,) (50000,)
+ADJ=0.19714106553840627
+NC(4
+Cluster 0: 10485 samples
+Cluster 1: 11560 samples
+Cluster 2: 17975 samples
+Cluster 3: 9980 samples
+Mean: 0.76772
+(50000,) (50000,)
+ADJ=0.245400860026757
+NC(5
+Cluster 0: 10454 samples
+Cluster 1: 15509 samples
+Cluster 2: 8351 samples
+Cluster 3: 8282 samples
+Cluster 4: 7404 samples
+Mean: 0.6936800000000001
+(50000,) (50000,)
+ADJ=0.2523993924184267
+NC(6
+Cluster 0: 14047 samples
+Cluster 1: 9540 samples
+Cluster 2: 6393 samples
+Cluster 3: 7703 samples
+Cluster 4: 6389 samples
+Cluster 5: 5928 samples
+Mean: 0.6611
+(50000,) (50000,)
+ADJ=0.26794351970750724
+NC(7
+Cluster 0: 9134 samples
+Cluster 1: 7348 samples
+Cluster 2: 6644 samples
+Cluster 3: 3943 samples
+Cluster 4: 4991 samples
+Cluster 5: 11602 samples
+Cluster 6: 6338 samples
+Mean: 0.6192
+(50000,) (50000,)
+ADJ=0.27445708004676866
+NC(8
+Cluster 0: 6387 samples
+Cluster 1: 3881 samples
+Cluster 2: 11477 samples
+Cluster 3: 5169 samples
+Cluster 4: 4287 samples
+Cluster 5: 3812 samples
+Cluster 6: 4097 samples
+Cluster 7: 10890 samples
+Mean: 0.62904
+(50000,) (50000,)
+ADJ=0.30402737334324903
+NC(9
+Cluster 0: 4631 samples
+Cluster 1: 3236 samples
+Cluster 2: 4423 samples
+Cluster 3: 2684 samples
+Cluster 4: 8826 samples
+Cluster 5: 3299 samples
+Cluster 6: 5873 samples
+Cluster 7: 10646 samples
+Cluster 8: 6382 samples
+Mean: 0.60678
+(50000,) (50000,)
+ADJ=0.30842372759347
+NC(10
+Cluster 0: 9129 samples
+Cluster 1: 6021 samples
+Cluster 2: 3254 samples
+Cluster 3: 3220 samples
+Cluster 4: 3920 samples
+Cluster 5: 5527 samples
+Cluster 6: 4258 samples
+Cluster 7: 8862 samples
+Cluster 8: 2452 samples
+Cluster 9: 3357 samples
+Mean: 0.5955400000000001
+(50000,) (50000,)
+ADJ=0.31786525722312264
+NC(11
+Cluster 0: 2370 samples
+Cluster 1: 8882 samples
+Cluster 2: 3178 samples
+Cluster 3: 8852 samples
+Cluster 4: 2982 samples
+Cluster 5: 2889 samples
+Cluster 6: 3299 samples
+Cluster 7: 3173 samples
+Cluster 8: 3733 samples
+Cluster 9: 5482 samples
+Cluster 10: 5160 samples
+Mean: 0.5828800000000001
+(50000,) (50000,)
+ADJ=0.32447145815525236
+NC(12
+Cluster 0: 9173 samples
+Cluster 1: 3811 samples
+Cluster 2: 3984 samples
+Cluster 3: 3212 samples
+Cluster 4: 2477 samples
+Cluster 5: 3430 samples
+Cluster 6: 3083 samples
+Cluster 7: 4184 samples
+Cluster 8: 2856 samples
+Cluster 9: 5290 samples
+Cluster 10: 3120 samples
+Cluster 11: 5380 samples
+Mean: 0.55512
+(50000,) (50000,)
+ADJ=0.32405620616168596
+NC(13
+Cluster 0: 4037 samples
+Cluster 1: 6139 samples
+Cluster 2: 2722 samples
+Cluster 3: 3799 samples
+Cluster 4: 4967 samples
+Cluster 5: 2922 samples
+Cluster 6: 2361 samples
+Cluster 7: 2826 samples
+Cluster 8: 6322 samples
+Cluster 9: 2924 samples
+Cluster 10: 5099 samples
+Cluster 11: 2638 samples
+Cluster 12: 3244 samples
+Mean: 0.51936
+(50000,) (50000,)
+ADJ=0.329407915323321
+NC(14
+Cluster 0: 2374 samples
+Cluster 1: 3176 samples
+Cluster 2: 2308 samples
+Cluster 3: 4825 samples
+Cluster 4: 3887 samples
+Cluster 5: 2687 samples
+Cluster 6: 3452 samples
+Cluster 7: 6134 samples
+Cluster 8: 2624 samples
+Cluster 9: 3418 samples
+Cluster 10: 3749 samples
+Cluster 11: 5958 samples
+Cluster 12: 2606 samples
+Cluster 13: 2802 samples
+Mean: 0.50644
+(50000,) (50000,)
+ADJ=0.33163886001342574
+NC(15
+Cluster 0: 2600 samples
+Cluster 1: 3815 samples
+Cluster 2: 2497 samples
+Cluster 3: 2448 samples
+Cluster 4: 6584 samples
+Cluster 5: 4002 samples
+Cluster 6: 2343 samples
+Cluster 7: 4654 samples
+Cluster 8: 3442 samples
+Cluster 9: 2357 samples
+Cluster 10: 4068 samples
+Cluster 11: 2405 samples
+Cluster 12: 3328 samples
+Cluster 13: 2550 samples
+Cluster 14: 2907 samples
+Mean: 0.49788
+(50000,) (50000,)
+ADJ=0.3340556911684176
+NC(16
+Cluster 0: 4480 samples
+Cluster 1: 3660 samples
+Cluster 2: 2475 samples
+Cluster 3: 2311 samples
+Cluster 4: 2357 samples
+Cluster 5: 2450 samples
+Cluster 6: 3965 samples
+Cluster 7: 3970 samples
+Cluster 8: 2434 samples
+Cluster 9: 2380 samples
+Cluster 10: 4579 samples
+Cluster 11: 4119 samples
+Cluster 12: 2506 samples
+Cluster 13: 3269 samples
+Cluster 14: 2268 samples
+Cluster 15: 2777 samples
+Mean: 0.47575999999999996
+(50000,) (50000,)
+ADJ=0.33588556895800525
+NC(17
+Cluster 0: 3758 samples
+Cluster 1: 2211 samples
+Cluster 2: 2863 samples
+Cluster 3: 2655 samples
+Cluster 4: 2294 samples
+Cluster 5: 3133 samples
+Cluster 6: 4634 samples
+Cluster 7: 3647 samples
+Cluster 8: 2194 samples
+Cluster 9: 1458 samples
+Cluster 10: 3651 samples
+Cluster 11: 2376 samples
+Cluster 12: 3893 samples
+Cluster 13: 2375 samples
+Cluster 14: 1826 samples
+Cluster 15: 2410 samples
+Cluster 16: 4622 samples
+Mean: 0.46324000000000004
+(50000,) (50000,)
+ADJ=0.3315355416315983
+NC(18
+Cluster 0: 2225 samples
+Cluster 1: 2272 samples
+Cluster 2: 2621 samples
+Cluster 3: 4789 samples
+Cluster 4: 2181 samples
+Cluster 5: 1841 samples
+Cluster 6: 1976 samples
+Cluster 7: 3205 samples
+Cluster 8: 3528 samples
+Cluster 9: 3361 samples
+Cluster 10: 2888 samples
+Cluster 11: 2780 samples
+Cluster 12: 3523 samples
+Cluster 13: 2234 samples
+Cluster 14: 2365 samples
+Cluster 15: 2239 samples
+Cluster 16: 2147 samples
+Cluster 17: 3825 samples
+Mean: 0.4422999999999999
+(50000,) (50000,)
+ADJ=0.3341402676546847
+NC(19
+Cluster 0: 2350 samples
+Cluster 1: 2583 samples
+Cluster 2: 3405 samples
+Cluster 3: 1399 samples
+Cluster 4: 2872 samples
+Cluster 5: 3279 samples
+Cluster 6: 2275 samples
+Cluster 7: 4538 samples
+Cluster 8: 3314 samples
+Cluster 9: 2130 samples
+Cluster 10: 1971 samples
+Cluster 11: 2227 samples
+Cluster 12: 3362 samples
+Cluster 13: 1259 samples
+Cluster 14: 2398 samples
+Cluster 15: 1738 samples
+Cluster 16: 2714 samples
+Cluster 17: 2261 samples
+Cluster 18: 3925 samples
+Mean: 0.43014
+(50000,) (50000,)
+ADJ=0.3331618475003304
+NC(20
+Cluster 0: 3923 samples
+Cluster 1: 2402 samples
+Cluster 2: 1981 samples
+Cluster 3: 2629 samples
+Cluster 4: 1966 samples
+Cluster 5: 2790 samples
+Cluster 6: 2022 samples
+Cluster 7: 2361 samples
+Cluster 8: 2353 samples
+Cluster 9: 1269 samples
+Cluster 10: 3130 samples
+Cluster 11: 2485 samples
+Cluster 12: 2762 samples
+Cluster 13: 2542 samples
+Cluster 14: 4036 samples
+Cluster 15: 2458 samples
+Cluster 16: 2539 samples
+Cluster 17: 1929 samples
+Cluster 18: 2340 samples
+Cluster 19: 2083 samples
+Mean: 0.43141999999999997
+(50000,) (50000,)
+ADJ=0.3388870211964479
+NC(21
+Cluster 0: 2510 samples
+Cluster 1: 2121 samples
+Cluster 2: 1038 samples
+Cluster 3: 4089 samples
+Cluster 4: 2206 samples
+Cluster 5: 1980 samples
+Cluster 6: 2516 samples
+Cluster 7: 2791 samples
+Cluster 8: 2483 samples
+Cluster 9: 1725 samples
+Cluster 10: 2294 samples
+Cluster 11: 2366 samples
+Cluster 12: 3764 samples
+Cluster 13: 1376 samples
+Cluster 14: 2307 samples
+Cluster 15: 3146 samples
+Cluster 16: 1218 samples
+Cluster 17: 4244 samples
+Cluster 18: 1565 samples
+Cluster 19: 1915 samples
+Cluster 20: 2346 samples
+Mean: 0.43328000000000017
+(50000,) (50000,)
+ADJ=0.34297020969126896
+NC(22
+Cluster 0: 3174 samples
+Cluster 1: 2215 samples
+Cluster 2: 1719 samples
+Cluster 3: 2864 samples
+Cluster 4: 2160 samples
+Cluster 5: 1818 samples
+Cluster 6: 1901 samples
+Cluster 7: 1352 samples
+Cluster 8: 2599 samples
+Cluster 9: 1137 samples
+Cluster 10: 2567 samples
+Cluster 11: 1126 samples
+Cluster 12: 3893 samples
+Cluster 13: 3052 samples
+Cluster 14: 2985 samples
+Cluster 15: 2016 samples
+Cluster 16: 997 samples
+Cluster 17: 2275 samples
+Cluster 18: 2451 samples
+Cluster 19: 2683 samples
+Cluster 20: 2351 samples
+Cluster 21: 2665 samples
+Mean: 0.43072000000000005
+(50000,) (50000,)
+ADJ=0.341866769981889
+NC(23
+Cluster 0: 2252 samples
+Cluster 1: 2000 samples
+Cluster 2: 1863 samples
+Cluster 3: 3129 samples
+Cluster 4: 2748 samples
+Cluster 5: 2051 samples
+Cluster 6: 2456 samples
+Cluster 7: 1989 samples
+Cluster 8: 1304 samples
+Cluster 9: 1204 samples
+Cluster 10: 3115 samples
+Cluster 11: 2077 samples
+Cluster 12: 2789 samples
+Cluster 13: 3181 samples
+Cluster 14: 2389 samples
+Cluster 15: 1257 samples
+Cluster 16: 1140 samples
+Cluster 17: 1858 samples
+Cluster 18: 3509 samples
+Cluster 19: 1197 samples
+Cluster 20: 2415 samples
+Cluster 21: 1676 samples
+Cluster 22: 2401 samples
+Mean: 0.40895999999999993
+(50000,) (50000,)
+ADJ=0.3424486588577049
+NC(24
+Cluster 0: 1872 samples
+Cluster 1: 2729 samples
+Cluster 2: 1806 samples
+Cluster 3: 4127 samples
+Cluster 4: 1722 samples
+Cluster 5: 1008 samples
+Cluster 6: 1201 samples
+Cluster 7: 1163 samples
+Cluster 8: 2205 samples
+Cluster 9: 2892 samples
+Cluster 10: 2342 samples
+Cluster 11: 2195 samples
+Cluster 12: 2768 samples
+Cluster 13: 2197 samples
+Cluster 14: 2047 samples
+Cluster 15: 1561 samples
+Cluster 16: 1619 samples
+Cluster 17: 2172 samples
+Cluster 18: 2757 samples
+Cluster 19: 2275 samples
+Cluster 20: 1002 samples
+Cluster 21: 1468 samples
+Cluster 22: 2866 samples
+Cluster 23: 2006 samples
+Mean: 0.4146399999999999
+(50000,) (50000,)
+ADJ=0.3448641496440579
+NC(25
+Cluster 0: 751 samples
+Cluster 1: 1735 samples
+Cluster 2: 2505 samples
+Cluster 3: 3288 samples
+Cluster 4: 1435 samples
+Cluster 5: 1789 samples
+Cluster 6: 1629 samples
+Cluster 7: 2097 samples
+Cluster 8: 2384 samples
+Cluster 9: 2137 samples
+Cluster 10: 1143 samples
+Cluster 11: 2133 samples
+Cluster 12: 4018 samples
+Cluster 13: 1746 samples
+Cluster 14: 1402 samples
+Cluster 15: 2669 samples
+Cluster 16: 2011 samples
+Cluster 17: 1016 samples
+Cluster 18: 1660 samples
+Cluster 19: 2613 samples
+Cluster 20: 1483 samples
+Cluster 21: 1737 samples
+Cluster 22: 2002 samples
+Cluster 23: 2327 samples
+Cluster 24: 2290 samples
+Mean: 0.40816
+(50000,) (50000,)
+ADJ=0.3472456159706976
+NC(26
+Cluster 0: 2259 samples
+Cluster 1: 1599 samples
+Cluster 2: 1408 samples
+Cluster 3: 1393 samples
+Cluster 4: 1380 samples
+Cluster 5: 1821 samples
+Cluster 6: 3624 samples
+Cluster 7: 2700 samples
+Cluster 8: 1852 samples
+Cluster 9: 2722 samples
+Cluster 10: 1304 samples
+Cluster 11: 1829 samples
+Cluster 12: 1168 samples
+Cluster 13: 3232 samples
+Cluster 14: 2170 samples
+Cluster 15: 951 samples
+Cluster 16: 2382 samples
+Cluster 17: 1388 samples
+Cluster 18: 721 samples
+Cluster 19: 1535 samples
+Cluster 20: 4107 samples
+Cluster 21: 1667 samples
+Cluster 22: 1625 samples
+Cluster 23: 1422 samples
+Cluster 24: 2933 samples
+Cluster 25: 808 samples
+Mean: 0.40832000000000007
+(50000,) (50000,)
+ADJ=0.34896027931002604
+NC(27
+Cluster 0: 2415 samples
+Cluster 1: 1052 samples
+Cluster 2: 2063 samples
+Cluster 3: 2030 samples
+Cluster 4: 1496 samples
+Cluster 5: 2186 samples
+Cluster 6: 1776 samples
+Cluster 7: 1591 samples
+Cluster 8: 772 samples
+Cluster 9: 1548 samples
+Cluster 10: 1814 samples
+Cluster 11: 1025 samples
+Cluster 12: 2913 samples
+Cluster 13: 2614 samples
+Cluster 14: 1516 samples
+Cluster 15: 3962 samples
+Cluster 16: 1803 samples
+Cluster 17: 2163 samples
+Cluster 18: 1573 samples
+Cluster 19: 1037 samples
+Cluster 20: 1882 samples
+Cluster 21: 1615 samples
+Cluster 22: 1731 samples
+Cluster 23: 1480 samples
+Cluster 24: 1667 samples
+Cluster 25: 2340 samples
+Cluster 26: 1936 samples
+Mean: 0.39956
+(50000,) (50000,)
+ADJ=0.3492351518621271
+NC(28
+Cluster 0: 1056 samples
+Cluster 1: 2932 samples
+Cluster 2: 887 samples
+Cluster 3: 2073 samples
+Cluster 4: 1980 samples
+Cluster 5: 1454 samples
+Cluster 6: 3077 samples
+Cluster 7: 2333 samples
+Cluster 8: 1892 samples
+Cluster 9: 2556 samples
+Cluster 10: 1158 samples
+Cluster 11: 1906 samples
+Cluster 12: 2534 samples
+Cluster 13: 1486 samples
+Cluster 14: 1063 samples
+Cluster 15: 1500 samples
+Cluster 16: 1394 samples
+Cluster 17: 2358 samples
+Cluster 18: 1726 samples
+Cluster 19: 1863 samples
+Cluster 20: 1279 samples
+Cluster 21: 1114 samples
+Cluster 22: 1008 samples
+Cluster 23: 1809 samples
+Cluster 24: 1910 samples
+Cluster 25: 1622 samples
+Cluster 26: 1944 samples
+Cluster 27: 2086 samples
+Mean: 0.39326000000000005
+(50000,) (50000,)
+ADJ=0.35065660117870945
+NC(29
+Cluster 0: 1362 samples
+Cluster 1: 3501 samples
+Cluster 2: 1961 samples
+Cluster 3: 1964 samples
+Cluster 4: 977 samples
+Cluster 5: 1609 samples
+Cluster 6: 1661 samples
+Cluster 7: 2231 samples
+Cluster 8: 1757 samples
+Cluster 9: 1145 samples
+Cluster 10: 2221 samples
+Cluster 11: 1212 samples
+Cluster 12: 1089 samples
+Cluster 13: 1543 samples
+Cluster 14: 2159 samples
+Cluster 15: 1481 samples
+Cluster 16: 2478 samples
+Cluster 17: 1012 samples
+Cluster 18: 1505 samples
+Cluster 19: 1017 samples
+Cluster 20: 1992 samples
+Cluster 21: 1023 samples
+Cluster 22: 1434 samples
+Cluster 23: 1806 samples
+Cluster 24: 1100 samples
+Cluster 25: 3234 samples
+Cluster 26: 1849 samples
+Cluster 27: 1995 samples
+Cluster 28: 1682 samples
+Mean: 0.3807
+(50000,) (50000,)
+ADJ=0.35155120674928564
+NC(30
+Cluster 0: 1754 samples
+Cluster 1: 2369 samples
+Cluster 2: 2146 samples
+Cluster 3: 1556 samples
+Cluster 4: 1929 samples
+Cluster 5: 1796 samples
+Cluster 6: 1540 samples
+Cluster 7: 1139 samples
+Cluster 8: 1243 samples
+Cluster 9: 1421 samples
+Cluster 10: 1060 samples
+Cluster 11: 1202 samples
+Cluster 12: 1471 samples
+Cluster 13: 1993 samples
+Cluster 14: 1141 samples
+Cluster 15: 1844 samples
+Cluster 16: 1561 samples
+Cluster 17: 1863 samples
+Cluster 18: 2672 samples
+Cluster 19: 1378 samples
+Cluster 20: 1079 samples
+Cluster 21: 2056 samples
+Cluster 22: 1890 samples
+Cluster 23: 1395 samples
+Cluster 24: 1714 samples
+Cluster 25: 1585 samples
+Cluster 26: 1694 samples
+Cluster 27: 881 samples
+Cluster 28: 1229 samples
+Cluster 29: 3399 samples
+Mean: 0.36512000000000006
+(50000,) (50000,)
+ADJ=0.3488472274144977
+NC(31
+Cluster 0: 751 samples
+Cluster 1: 1631 samples
+Cluster 2: 1852 samples
+Cluster 3: 1042 samples
+Cluster 4: 1444 samples
+Cluster 5: 1016 samples
+Cluster 6: 2004 samples
+Cluster 7: 2050 samples
+Cluster 8: 1874 samples
+Cluster 9: 1588 samples
+Cluster 10: 2225 samples
+Cluster 11: 1166 samples
+Cluster 12: 1456 samples
+Cluster 13: 3326 samples
+Cluster 14: 1401 samples
+Cluster 15: 932 samples
+Cluster 16: 1146 samples
+Cluster 17: 1816 samples
+Cluster 18: 1086 samples
+Cluster 19: 2332 samples
+Cluster 20: 1006 samples
+Cluster 21: 1692 samples
+Cluster 22: 2769 samples
+Cluster 23: 1880 samples
+Cluster 24: 1486 samples
+Cluster 25: 1534 samples
+Cluster 26: 852 samples
+Cluster 27: 1730 samples
+Cluster 28: 2636 samples
+Cluster 29: 1241 samples
+Cluster 30: 1036 samples
+Mean: 0.3707999999999999
+(50000,) (50000,)
+ADJ=0.3520801752131063
+NC(32
+Cluster 0: 1642 samples
+Cluster 1: 2098 samples
+Cluster 2: 2232 samples
+Cluster 3: 3005 samples
+Cluster 4: 1794 samples
+Cluster 5: 1571 samples
+Cluster 6: 1893 samples
+Cluster 7: 1557 samples
+Cluster 8: 1495 samples
+Cluster 9: 1527 samples
+Cluster 10: 906 samples
+Cluster 11: 918 samples
+Cluster 12: 1683 samples
+Cluster 13: 1712 samples
+Cluster 14: 704 samples
+Cluster 15: 949 samples
+Cluster 16: 1395 samples
+Cluster 17: 1057 samples
+Cluster 18: 1771 samples
+Cluster 19: 1012 samples
+Cluster 20: 1834 samples
+Cluster 21: 834 samples
+Cluster 22: 1055 samples
+Cluster 23: 2475 samples
+Cluster 24: 1733 samples
+Cluster 25: 1265 samples
+Cluster 26: 1357 samples
+Cluster 27: 1671 samples
+Cluster 28: 1205 samples
+Cluster 29: 1652 samples
+Cluster 30: 1310 samples
+Cluster 31: 2688 samples
+Mean: 0.37439999999999996
+(50000,) (50000,)
+ADJ=0.35369734004886755
+NC(33
+Cluster 0: 1740 samples
+Cluster 1: 2336 samples
+Cluster 2: 573 samples
+Cluster 3: 1387 samples
+Cluster 4: 1573 samples
+Cluster 5: 521 samples
+Cluster 6: 3899 samples
+Cluster 7: 1663 samples
+Cluster 8: 1928 samples
+Cluster 9: 913 samples
+Cluster 10: 232 samples
+Cluster 11: 1557 samples
+Cluster 12: 1722 samples
+Cluster 13: 2020 samples
+Cluster 14: 1867 samples
+Cluster 15: 293 samples
+Cluster 16: 1837 samples
+Cluster 17: 1319 samples
+Cluster 18: 412 samples
+Cluster 19: 886 samples
+Cluster 20: 1114 samples
+Cluster 21: 481 samples
+Cluster 22: 1401 samples
+Cluster 23: 1137 samples
+Cluster 24: 1089 samples
+Cluster 25: 1183 samples
+Cluster 26: 4349 samples
+Cluster 27: 3354 samples
+Cluster 28: 466 samples
+Cluster 29: 2070 samples
+Cluster 30: 670 samples
+Cluster 31: 823 samples
+Cluster 32: 3185 samples
+Mean: 0.41379999999999995
+(50000,) (50000,)
+ADJ=0.3532741419301691
+NC(34
+Cluster 0: 625 samples
+Cluster 1: 1219 samples
+Cluster 2: 4954 samples
+Cluster 3: 265 samples
+Cluster 4: 906 samples
+Cluster 5: 2159 samples
+Cluster 6: 685 samples
+Cluster 7: 2402 samples
+Cluster 8: 1854 samples
+Cluster 9: 908 samples
+Cluster 10: 402 samples
+Cluster 11: 1823 samples
+Cluster 12: 2440 samples
+Cluster 13: 742 samples
+Cluster 14: 1565 samples
+Cluster 15: 1241 samples
+Cluster 16: 181 samples
+Cluster 17: 2831 samples
+Cluster 18: 779 samples
+Cluster 19: 665 samples
+Cluster 20: 670 samples
+Cluster 21: 2012 samples
+Cluster 22: 2687 samples
+Cluster 23: 579 samples
+Cluster 24: 921 samples
+Cluster 25: 4422 samples
+Cluster 26: 1448 samples
+Cluster 27: 419 samples
+Cluster 28: 1185 samples
+Cluster 29: 1947 samples
+Cluster 30: 1919 samples
+Cluster 31: 1459 samples
+Cluster 32: 567 samples
+Cluster 33: 1119 samples
+Mean: 0.41977999999999993
+(50000,) (50000,)
+ADJ=0.3544192787881892
+NC(35
+Cluster 0: 4900 samples
+Cluster 1: 300 samples
+Cluster 2: 1732 samples
+Cluster 3: 704 samples
+Cluster 4: 1821 samples
+Cluster 5: 694 samples
+Cluster 6: 303 samples
+Cluster 7: 1984 samples
+Cluster 8: 2781 samples
+Cluster 9: 891 samples
+Cluster 10: 1573 samples
+Cluster 11: 1203 samples
+Cluster 12: 2637 samples
+Cluster 13: 2520 samples
+Cluster 14: 626 samples
+Cluster 15: 153 samples
+Cluster 16: 3310 samples
+Cluster 17: 1819 samples
+Cluster 18: 396 samples
+Cluster 19: 2241 samples
+Cluster 20: 104 samples
+Cluster 21: 736 samples
+Cluster 22: 1359 samples
+Cluster 23: 2052 samples
+Cluster 24: 929 samples
+Cluster 25: 2132 samples
+Cluster 26: 1378 samples
+Cluster 27: 550 samples
+Cluster 28: 1400 samples
+Cluster 29: 433 samples
+Cluster 30: 31 samples
+Cluster 31: 87 samples
+Cluster 32: 1702 samples
+Cluster 33: 3398 samples
+Cluster 34: 1121 samples
+Mean: 0.42407999999999996
+(50000,) (50000,)
+ADJ=0.35362172861883473
+NC(36
+Cluster 0: 4409 samples
+Cluster 1: 251 samples
+Cluster 2: 1141 samples
+Cluster 3: 2971 samples
+Cluster 4: 117 samples
+Cluster 5: 555 samples
+Cluster 6: 1563 samples
+Cluster 7: 884 samples
+Cluster 8: 1541 samples
+Cluster 9: 1978 samples
+Cluster 10: 1356 samples
+Cluster 11: 1797 samples
+Cluster 12: 269 samples
+Cluster 13: 978 samples
+Cluster 14: 2268 samples
+Cluster 15: 457 samples
+Cluster 16: 918 samples
+Cluster 17: 1032 samples
+Cluster 18: 1480 samples
+Cluster 19: 1200 samples
+Cluster 20: 1085 samples
+Cluster 21: 439 samples
+Cluster 22: 1251 samples
+Cluster 23: 462 samples
+Cluster 24: 1921 samples
+Cluster 25: 749 samples
+Cluster 26: 875 samples
+Cluster 27: 2250 samples
+Cluster 28: 3995 samples
+Cluster 29: 1926 samples
+Cluster 30: 385 samples
+Cluster 31: 2584 samples
+Cluster 32: 906 samples
+Cluster 33: 1725 samples
+Cluster 34: 1729 samples
+Cluster 35: 553 samples
+Mean: 0.4059799999999999
+(50000,) (50000,)
+ADJ=0.35373756383411054
+NC(37
