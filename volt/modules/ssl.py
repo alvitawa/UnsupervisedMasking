@@ -75,7 +75,14 @@ class SWAVModule(ClassifierModule):
                     w = nn.functional.normalize(w, dim=1, p=2)
                     self.prototypes.W.weight.copy_(w)
 
+        # self.queue = torch.zeros(
+        #         len(self.cfg.swav.crops_for_assign),
+        #         self.cfg.swav.queue_length // 1,
+        #         self.cfg.swav.feat_dim,
+        #     ).to(self.device)
+        # self.queue.requires_grad = False
         self.queue = None
+
         # the queue needs to be divisible by the batch size
         self.cfg.swav.queue_length -= self.cfg.swav.queue_length % (self.cfg.dl.batch_size * 1)
 

@@ -39,45 +39,6 @@ def load_data(run_id):
                  val_embeddings=embedding_unnorm)
 
 
-def combine_embeddings(embeddings, method):
-    if method == 'average':
-        ensemble_embeddings = torch.mean(torch.stack([emb for emb in embeddings]), dim=0)
-
-    elif method == 'max_pooling':
-        ensemble_embeddings = torch.max(torch.stack([emb for emb in embeddings]), dim=0).values
-
-    elif method == 'min_pooling':
-        ensemble_embeddings = torch.min(torch.stack([emb for emb in embeddings]), dim=0).values
-
-    elif method == 'concatenation':
-        ensemble_embeddings = torch.cat([emb for emb in embeddings], dim=-1)
-
-    elif method == 'sum':
-        ensemble_embeddings = torch.sum(torch.stack([emb for emb in embeddings]), dim=0)
-
-    elif method == 'geom_mean':
-        ensemble_embeddings = torch.prod(torch.stack([emb.clamp(min=1e-9) for emb in embeddings]),
-                                         dim=0).pow(1 / len(embeddings))
-    elif method == 'harmonic_mean':
-        ensemble_embeddings = len(embeddings) / torch.sum(
-            torch.stack([1 / (emb.clamp(min=1e-9)) for emb in embeddings]), dim=0)
-    elif method == 'ranked_averaging':
-        sorted_indices = torch.argsort(torch.stack([emb for emb in embeddings]), dim=0)
-        ranked_embeddings = torch.zeros_like(sorted_indices, dtype=torch.float)
-        for rank, idx in enumerate(sorted_indices):
-            ranked_embeddings[idx] = rank + 1
-        ensemble_embeddings = torch.mean(ranked_embeddings, dim=0)
-    elif method == 'matrix_completion':
-        from sklearn.impute import SimpleImputer
-        imputer = SimpleImputer(strategy='mean')
-        data_matrix = torch.stack([emb for emb in embeddings], dim=0).numpy()
-        imputed_data = imputer.fit_transform(data_matrix)
-        ensemble_embeddings = torch.tensor(imputed_data.mean(axis=0))
-    else:
-        raise ValueError(f'Unknown method: {method}')
-    return ensemble_embeddings
-
-
 def recov(train_embeddings, train_cluster_assignments, n_clusters):
     # Initialize a list to store the covariance matrices
     covariance_matrices = []
@@ -149,6 +110,7 @@ def main(cfg: DictConfig):
     train_cluster_assignments = torch.tensor(torch.load('notebook/output_clustersB.pt'))
     gm = torch.load('notebook/output_gmB.pt')
     A, U, S, V, E = torch.load('notebook/output_pcaB.pt')
+
     def assign(embeddings):
         embs = ((embeddings - A.mean(axis=0)) @ V @ torch.diag(1 / S)).cpu().numpy()
         predictions = gm.predict(embs)
@@ -156,50 +118,43 @@ def main(cfg: DictConfig):
 
     assert torch.all(assign(train_embeddings_norm[0]) == train_cluster_assignments)
 
-    n_clusters = train_cluster_assignments.max() + 1
-    feat_dim = train_embeddings[0].shape[1]
-    train_means = torch.zeros((n_clusters, feat_dim)).scatter_reduce(0, train_cluster_assignments.unsqueeze(1).repeat(1,
-                                                                                                                      feat_dim),
-                                                                     torch.tensor(train_embeddings[0]),
-                                                                     reduce='mean')
-
-
-    print(f'Ensembling method: {method}')
-    train_cluster_distances = torch.cdist(train_embeddings[0], train_means)
-    print(f"MATCH {torch.argmin(train_cluster_distances, dim=1).eq(train_cluster_assignments).float().mean()}")
-
-    val_cluster_distances = torch.cdist(val_embeddings[0], train_means)
-    val_cluster_assignments = torch.argmin(val_cluster_distances, dim=1)
-
-    # train_ensemble_embeddings = combine_embeddings(train_embeddings, method)
-    # val_ensemble_embeddings = combine_embeddings(val_embeddings, method)
+    val_cluster_assignments = assign(val_embeddings_norm[0])
 
     # replace mode
     if method == 'replace':
         train_ensemble_embeddings = train_embeddings[0].clone()
-        train_ensemble_embeddings[train_cluster_assignments == 0] = train_embeddings[1][train_cluster_assignments == 0]
         val_ensemble_embeddings = val_embeddings[0].clone()
-        val_ensemble_embeddings[val_cluster_assignments == 0] = val_embeddings[1][val_cluster_assignments == 0]
+        for i, cluster in enumerate(cfg.cluster_ids):
+            train_ensemble_embeddings[train_cluster_assignments == cluster] = train_embeddings[i+1][train_cluster_assignments == cluster]
+            val_ensemble_embeddings[val_cluster_assignments == cluster] = val_embeddings[i+1][val_cluster_assignments == cluster]
     elif method == 'add_conditional':
         train_ensemble_embeddings = train_embeddings[0].clone()
-        train_ensemble_embeddings[train_cluster_assignments == 0] += train_embeddings[1][train_cluster_assignments == 0]
         val_ensemble_embeddings = val_embeddings[0].clone()
-        val_ensemble_embeddings[val_cluster_assignments == 0] += val_embeddings[1][val_cluster_assignments == 0]
+        for i, cluster in enumerate(cfg.cluster_ids):
+            train_ensemble_embeddings[train_cluster_assignments == cluster] += train_embeddings[i + 1][
+                train_cluster_assignments == cluster]
+            val_ensemble_embeddings[val_cluster_assignments == cluster] += val_embeddings[i + 1][
+                val_cluster_assignments == cluster]
     elif method == 'add_unconditional':
         train_ensemble_embeddings = train_embeddings[0].clone()
-        train_ensemble_embeddings += train_embeddings[1]
         val_ensemble_embeddings = val_embeddings[0].clone()
-        val_ensemble_embeddings += val_embeddings[1]
+        for embed in train_embeddings[1:]:
+            train_ensemble_embeddings += embed
+        for embed in val_embeddings[1:]:
+            val_ensemble_embeddings += embed
     elif method == 'unconditional':
         train_ensemble_embeddings = torch.cat(train_embeddings, dim=1)
         val_ensemble_embeddings = torch.cat(val_embeddings, dim=1)
     elif method == 'conditional':
         train_ensemble_embeddings = torch.cat(train_embeddings, dim=1)
-        spl = train_embeddings[1].shape[1]
-        train_ensemble_embeddings[train_cluster_assignments != 0, -spl:] = 0
-
         val_ensemble_embeddings = torch.cat(val_embeddings, dim=1)
-        val_ensemble_embeddings[val_cluster_assignments != 0, -spl:] = 0
+        spl = train_embeddings[1].shape[1]
+        # zero out the embeddings of each cluster on the data points that do not belong to that cluster
+        for i, cluster in enumerate(cfg.cluster_ids):
+            fro = (i + 1) * spl
+            to = (i + 2) * spl
+            train_ensemble_embeddings[train_cluster_assignments != cluster, fro:to] = 0
+            val_ensemble_embeddings[val_cluster_assignments != cluster, fro:to] = 0
     elif method == 'baseline':
         train_ensemble_embeddings = train_embeddings[0]
         val_ensemble_embeddings = val_embeddings[0]
@@ -212,8 +167,8 @@ def main(cfg: DictConfig):
                               len(label_names), 200,
                               0.1)
     hits = (pred_labels[:, 0] == val_labels).float()
-    accuracy = hits.sum().item() / len(val_labels)
-    print(f'KNN Accuracy: {accuracy}')
+    knn_accuracy = hits.sum().item() / len(val_labels)
+    print(f'KNN Accuracy: {knn_accuracy}')
 
     # KNN precision, recall
     dim_size = max(val_labels) + 1
@@ -238,9 +193,26 @@ def main(cfg: DictConfig):
     accuracy = (y_pred.argmax(axis=-1) == val_labels.numpy()).astype('float64').sum().item() / len(val_labels)
     print(f'Linear probe accuracy: {accuracy}')
 
+    print(f'KNN Accuracy: {knn_accuracy}')
+    print(f'Method: {method}')
+
     # import pdb;
     # pdb.set_trace()
 
+def knn_assign(train_cluster_assignments, train_embeddings, val_embeddings):
+    n_clusters = train_cluster_assignments.max() + 1
+    feat_dim = train_embeddings[0].shape[1]
+    train_means = torch.zeros((n_clusters, feat_dim)).scatter_reduce(0, train_cluster_assignments.unsqueeze(1).repeat(1,
+                                                                                                                      feat_dim),
+                                                                     torch.tensor(train_embeddings[0]),
+                                                                     reduce='mean')
+
+
+    train_cluster_distances = torch.cdist(train_embeddings[0], train_means)
+    print(f"MATCH {torch.argmin(train_cluster_distances, dim=1).eq(train_cluster_assignments).float().mean()}")
+
+    val_cluster_distances = torch.cdist(val_embeddings[0], train_means)
+    val_cluster_assignments = torch.argmin(val_cluster_distances, dim=1)
 
 if __name__ == "__main__":
     XTrace(main, whitelist=['prunetuning']).__call__()

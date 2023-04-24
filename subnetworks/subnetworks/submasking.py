@@ -1,4 +1,5 @@
 import copy
+import itertools
 import math
 from dataclasses import dataclass
 
@@ -138,7 +139,8 @@ class SubmaskedModel(torch.nn.Module):
             unconventionally.
         """
         super().__init__()
-        self.model_shell = model
+        object.__setattr__(self, 'model_shell', model)
+        # self.model_shell = model
 
         self.scale = scale
 

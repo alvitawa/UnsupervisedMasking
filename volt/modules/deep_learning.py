@@ -245,10 +245,15 @@ class DeepLearningModule(LightningModule):
         self.scheduler_ = scheduler
         self.optimizer_ = optimizer
         return [optimizer], [scheduler]
+    #
+    # def load_state_dict(self, state_dict,
+    #                     strict: bool = True):
+    #     # TODO remove this
+    #     super().load_state_dict(state_dict, strict=False)
 
 
-def load_model_checkpoint(best_model_path, model):
+def load_model_checkpoint(best_model_path, model, strict=True):
     checkpoint_path = best_model_path
     checkpoint = torch.load(checkpoint_path, map_location=torch.device('cpu'))
-    model.load_state_dict(checkpoint['state_dict'])
+    model.load_state_dict(checkpoint['state_dict'], strict=strict)
     log.logger.info(f'Loaded model checkpoint from {best_model_path}')

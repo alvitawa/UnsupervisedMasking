@@ -4,9 +4,18 @@ defaults:
 
 method: replace
 dispatcher: 0
+cluster_ids:
+  - 1
+  - 4
 run_ids:
-  - SUB-928 #G from SUB-849
-  - SUB-990 #G from SUB-982
-#  - SUB-927 #G from SUB-916
-#  - SUB-929 #from SUB-920
-#  - SUB-930 #from SUB-919
+    - SUB-928 #G from SUB-849
+    - SUB-997 #SUB-993
+    - SUB-1003 #SUB-995
+#cluster_ids:
+#  - 0
+#run_ids:
+#  - SUB-928 #G from SUB-849
+#  - SUB-990 #G from SUB-982
+##  - SUB-927 #G from SUB-916
+##  - SUB-929 #from SUB-920
+##  - SUB-930 #from SUB-919

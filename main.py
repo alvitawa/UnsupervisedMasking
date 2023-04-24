@@ -71,6 +71,8 @@ class MainConfig:
     data_path: str = 'data'
     checkpoint_path: str = 'data/models/checkpoints'
     load_checkpoint: str = ''
+    strict_load_checkpoint: bool = True
+    resume_checkpoint: str = ''
     save_as: str = ''
     in_mvp: bool = False
     verbose: bool = True
@@ -798,10 +800,10 @@ def train(cfg, mvp=False):
         # trainer.tune(module)
 
     if cfg.main.load_checkpoint != '':
-        load_model_checkpoint(cfg.main.checkpoint_path + '/' + cfg.main.load_checkpoint, module)
+        load_model_checkpoint(cfg.main.checkpoint_path + '/' + cfg.main.load_checkpoint, module, strict=cfg.main.strict_load_checkpoint)
     elif cfg.main.run != '':
         last_ckpt_path = checkpoint_path + '/' + 'last.ckpt'
-        load_model_checkpoint(last_ckpt_path, module)
+        load_model_checkpoint(last_ckpt_path, module, strict=cfg.main.strict_load_checkpoint)
 
     if cfg.main.probe:
         module.probe()
@@ -809,8 +811,14 @@ def train(cfg, mvp=False):
     if cfg.main.validate:
         trainer.validate(module)
 
+
     if cfg.main.train:
-        trainer.fit(module)
+        ckpt_path = cfg.main.checkpoint_path + '/' + cfg.main.resume_checkpoint if cfg.main.resume_checkpoint != '' else None
+        # if ckpt_path is not None:
+        if not mvp:
+            trainer.fit(module, ckpt_path=ckpt_path)
+        else:
+            trainer.fit(module)
 
         best_model_path = checkpoint_callback.best_model_path
         logger.experiment[f'training/model/best_model_path'] = best_model_path
