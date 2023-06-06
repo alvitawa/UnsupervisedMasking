@@ -43,6 +43,18 @@ You can use this code to mask arbitrary architectures by only changing the `par_
 
 # Reproduction
 
+Clone repo into `UnsupervisedMasking/`
+
+Go into the cloned repo `cd UnsupervisedMasking`
+
+Create a virtual enviornment with
+
+`python3 -m venv venv`
+
+Activate the venv
+
+`source venv/bin/activate`
+
 Install dependencies with
 
 `pip install -r requirements.txt`
