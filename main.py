@@ -29,9 +29,10 @@ from transformers import AutoModel, AutoProcessor
 from subnetworks import submasking
 
 if pathlib.Path('moco/').exists():
+    print('MOCO found, adding to path')
     sys.path.append('moco/')
-import moco, main_moco, main_lincls
-from moco import builder
+    import moco, main_moco, main_lincls
+    from moco import builder
 
 from volt.modules import classifier, ssl
 from volt.modules.deep_learning import load_model_checkpoint, DeepLearningModule
