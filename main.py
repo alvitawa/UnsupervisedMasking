@@ -30,9 +30,10 @@ from subnetworks import submasking
 
 # check if not empty
 if next(pathlib.Path('moco/').iterdir(), None):
+    print('MOCO found, adding to path')
     sys.path.append('moco/')
-import moco, main_moco, main_lincls
-from moco import builder
+    import moco, main_moco, main_lincls
+    from moco import builder
 
 from volt.modules import classifier, ssl
 from volt.modules.deep_learning import load_model_checkpoint, DeepLearningModule
