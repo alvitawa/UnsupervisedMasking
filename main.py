@@ -28,7 +28,8 @@ from transformers import AutoModel, AutoProcessor
 
 from subnetworks import submasking
 
-if pathlib.Path('moco/').exists():
+# check if not empty
+if next(pathlib.Path('moco/').iterdir(), None):
     sys.path.append('moco/')
 import moco, main_moco, main_lincls
 from moco import builder
