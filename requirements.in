@@ -1,0 +1,11 @@
+matplotlib
+neptune-client
+hydra-core
+pytorch_lightning==1.8.6
+timm
+transformers
+joblib
+hydra-joblib-launcher
+cyanure
+-e ./subnetworks
+munch

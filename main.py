@@ -29,7 +29,7 @@ from transformers import AutoModel, AutoProcessor
 from subnetworks import submasking
 
 # check if not empty
-if next(pathlib.Path('moco/').iterdir(), None):
+if next(pathlib.Path('moco/').iterdir(), None) is not None:
     print('MOCO found, adding to path')
     sys.path.append('moco/')
     import moco, main_moco, main_lincls
