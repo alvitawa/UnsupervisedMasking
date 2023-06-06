@@ -24,6 +24,7 @@ case "$USER" in
 	;;
 esac
 
+export XTRACE=0
 export HYDRA_FULL_ERROR=1
 export NEPTUNE_ALLOW_SELF_SIGNED_CERTIFICATE=1
 export TOKENIZERS_PARALLELISM=false

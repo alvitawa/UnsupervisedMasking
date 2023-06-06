@@ -1,0 +1,247 @@
+\begin{tikzpicture}
+\begin{axis}[
+    width=7cm,
+    % title={Sparsity across the Network},
+    xlabel={Depth of Network},
+    ylabel={Sparsity},
+    % xmin=0, xmax=5,
+    ymin=0., ymax=1,
+    % xtick=data,
+    ytick={0.2,0.4,0.6,0.8,1},
+    legend pos=south east,
+    ymajorgrids=true,
+    grid style=dashed,
+]
+
+    % weights
+    \addplot[
+        name path global=middle,
+        % only marks,
+        color=blue,
+        % mark=square,
+    ]
+    coordinates {
+        (1,0.7688403278589249) % sparsity_conv1.weight
+        (2,0.6798095703125) % sparsity_layer1.0.conv1.weight
+        (3,0.769558385014534) % sparsity_layer1.0.conv2.weight
+        (4,0.711578369140625) % sparsity_layer1.0.conv3.weight
+        (5,0.7419281005859375) % sparsity_layer1.0.downsample.0.weight
+        (6,0.853515625) % sparsity_layer1.0.downsample.1.weight
+        (7,0.67864990234375) % sparsity_layer1.1.conv1.weight
+        (8,0.7436998337507248) % sparsity_layer1.1.conv2.weight
+        (9,0.735015869140625) % sparsity_layer1.1.conv3.weight
+        (10,0.7025909423828125) % sparsity_layer1.2.conv1.weight
+        (11,0.757080078125) % sparsity_layer1.2.conv2.weight
+        (12,0.76458740234375) % sparsity_layer1.2.conv3.weight
+        (13,0.7237701416015625) % sparsity_layer2.0.conv1.weight
+        (14,0.8254733681678772) % sparsity_layer2.0.conv2.weight
+        (15,0.7897300720214844) % sparsity_layer2.0.conv3.weight
+        (16,0.8396415710449219) % sparsity_layer2.0.downsample.0.weight
+        (17,0.853515625) % sparsity_layer2.0.downsample.1.weight
+        (18,0.839630126953125) % sparsity_layer2.1.conv1.weight
+        (19,0.880099818110466) % sparsity_layer2.1.conv2.weight
+        (20,0.7998161315917969) % sparsity_layer2.1.conv3.weight
+        (21,0.7944679260253906) % sparsity_layer2.2.conv1.weight
+        (22,0.8153991848230362) % sparsity_layer2.2.conv2.weight
+        (23,0.780517578125) % sparsity_layer2.2.conv3.weight
+        (24,0.7800979614257812) % sparsity_layer2.3.conv1.weight
+        (25,0.7883351594209671) % sparsity_layer2.3.conv2.weight
+        (26,0.7908401489257812) % sparsity_layer2.3.conv3.weight
+        (27,0.7571792602539062) % sparsity_layer3.0.conv1.weight
+        (28,0.8419736176729202) % sparsity_layer3.0.conv2.weight
+        (29,0.7568550109863281) % sparsity_layer3.0.conv3.weight
+        (30,0.8767924308776855) % sparsity_layer3.0.downsample.0.weight
+        (31,0.8681640625) % sparsity_layer3.0.downsample.1.weight
+        (32,0.8205585479736328) % sparsity_layer3.1.conv1.weight
+        (33,0.8427124172449112) % sparsity_layer3.1.conv2.weight
+        (34,0.7667655944824219) % sparsity_layer3.1.conv3.weight
+        (35,0.7946643829345703) % sparsity_layer3.2.conv1.weight
+        (36,0.8532558232545853) % sparsity_layer3.2.conv2.weight
+        (37,0.7738418579101562) % sparsity_layer3.2.conv3.weight
+        (38,0.7807865142822266) % sparsity_layer3.3.conv1.weight
+        (39,0.8110381215810776) % sparsity_layer3.3.conv2.weight
+        (40,0.784785270690918) % sparsity_layer3.3.conv3.weight
+        (41,0.7678442001342773) % sparsity_layer3.4.conv1.weight
+        (42,0.8319613039493561) % sparsity_layer3.4.conv2.weight
+        (43,0.7734136581420898) % sparsity_layer3.4.conv3.weight
+        (44,0.7649831771850586) % sparsity_layer3.5.conv1.weight
+        (45,0.813594400882721) % sparsity_layer3.5.conv2.weight
+        (46,0.7774887084960938) % sparsity_layer3.5.conv3.weight
+        (47,0.7529258728027344) % sparsity_layer4.0.conv1.weight
+        (48,0.9103271812200546) % sparsity_layer4.0.conv2.weight
+        (49,0.7599213123321533) % sparsity_layer4.0.conv3.weight
+        (50,0.9501379728317261) % sparsity_layer4.0.downsample.0.weight
+        (51,0.2813720703125) % sparsity_layer4.0.downsample.1.weight
+        (52,0.8811521530151367) % sparsity_layer4.1.conv1.weight
+        (53,0.9291502684354782) % sparsity_layer4.1.conv2.weight
+        (54,0.7709205150604248) % sparsity_layer4.1.conv3.weight
+        (55,0.8860363960266113) % sparsity_layer4.2.conv1.weight
+        (56,0.9382754564285278) % sparsity_layer4.2.conv2.weight
+        (57,0.7697410583496094) % sparsity_layer4.2.conv3.weight
+    };
+
+    \addplot[name path global=lower,draw=none] coordinates {
+        (1,0.7256475809659295) % sparsity_conv1.weight
+        (2,0.6225125430909892) % sparsity_layer1.0.conv1.weight
+        (3,0.7062080912122571) % sparsity_layer1.0.conv2.weight
+        (4,0.6579872687941944) % sparsity_layer1.0.conv3.weight
+        (5,0.6967541186166969) % sparsity_layer1.0.downsample.0.weight
+        (6,0.8091921651644132) % sparsity_layer1.0.downsample.1.weight
+        (7,0.6209414606692141) % sparsity_layer1.1.conv1.weight
+        (8,0.6818376833784636) % sparsity_layer1.1.conv2.weight
+        (9,0.6876283393088414) % sparsity_layer1.1.conv3.weight
+        (10,0.6489758327670822) % sparsity_layer1.2.conv1.weight
+        (11,0.6958240909924399) % sparsity_layer1.2.conv2.weight
+        (12,0.7181056744664055) % sparsity_layer1.2.conv3.weight
+        (13,0.6717575402035689) % sparsity_layer2.0.conv1.weight
+        (14,0.7645204040850058) % sparsity_layer2.0.conv2.weight
+        (15,0.7410077473858568) % sparsity_layer2.0.conv3.weight
+        (16,0.7816543666934215) % sparsity_layer2.0.downsample.0.weight
+        (17,0.823415947251128) % sparsity_layer2.0.downsample.1.weight
+        (18,0.7850187535593615) % sparsity_layer2.1.conv1.weight
+        (19,0.8277788775986608) % sparsity_layer2.1.conv2.weight
+        (20,0.7422083256416705) % sparsity_layer2.1.conv3.weight
+        (21,0.7330908763049043) % sparsity_layer2.2.conv1.weight
+        (22,0.7492222995765832) % sparsity_layer2.2.conv2.weight
+        (23,0.7157878660195374) % sparsity_layer2.2.conv3.weight
+        (24,0.721478212184168) % sparsity_layer2.3.conv1.weight
+        (25,0.7170274713215499) % sparsity_layer2.3.conv2.weight
+        (26,0.7313280766483224) % sparsity_layer2.3.conv3.weight
+        (27,0.6959981681748616) % sparsity_layer3.0.conv1.weight
+        (28,0.766441858035525) % sparsity_layer3.0.conv2.weight
+        (29,0.6851298298642704) % sparsity_layer3.0.conv3.weight
+        (30,0.8096991282325473) % sparsity_layer3.0.downsample.0.weight
+        (31,0.8076999368390483) % sparsity_layer3.0.downsample.1.weight
+        (32,0.7461521575804176) % sparsity_layer3.1.conv1.weight
+        (33,0.7618478367615528) % sparsity_layer3.1.conv2.weight
+        (34,0.6779092251061054) % sparsity_layer3.1.conv3.weight
+        (35,0.7107444712948913) % sparsity_layer3.2.conv1.weight
+        (36,0.7711463123398197) % sparsity_layer3.2.conv2.weight
+        (37,0.6801106706122746) % sparsity_layer3.2.conv3.weight
+        (38,0.6903746087948184) % sparsity_layer3.3.conv1.weight
+        (39,0.7145492164635697) % sparsity_layer3.3.conv2.weight
+        (40,0.6914115796151332) % sparsity_layer3.3.conv3.weight
+        (41,0.6743906693176511) % sparsity_layer3.4.conv1.weight
+        (42,0.7377004423260505) % sparsity_layer3.4.conv2.weight
+        (43,0.6770365194618081) % sparsity_layer3.4.conv3.weight
+        (44,0.6726843669083415) % sparsity_layer3.5.conv1.weight
+        (45,0.712568274454105) % sparsity_layer3.5.conv2.weight
+        (46,0.6884503495936005) % sparsity_layer3.5.conv3.weight
+        (47,0.6561470258503791) % sparsity_layer4.0.conv1.weight
+        (48,0.8409920578398866) % sparsity_layer4.0.conv2.weight
+        (49,0.6473631240825188) % sparsity_layer4.0.conv3.weight
+        (50,0.9270950650506864) % sparsity_layer4.0.downsample.0.weight
+        (51,0.23173116049219372) % sparsity_layer4.0.downsample.1.weight
+        (52,0.8164424040677453) % sparsity_layer4.1.conv1.weight
+        (53,0.8779387376364861) % sparsity_layer4.1.conv2.weight
+        (54,0.6433082063595339) % sparsity_layer4.1.conv3.weight
+        (55,0.826816803889687) % sparsity_layer4.2.conv1.weight
+        (56,0.894258076433624) % sparsity_layer4.2.conv2.weight
+        (57,0.6393174284566927) % sparsity_layer4.2.conv3.weight
+    };
+
+    \addplot[name path global=upper,draw=none] coordinates {
+        (1,0.8120330747519202) % sparsity_conv1.weight
+        (2,0.7371065975340108) % sparsity_layer1.0.conv1.weight
+        (3,0.8329086788168109) % sparsity_layer1.0.conv2.weight
+        (4,0.7651694694870556) % sparsity_layer1.0.conv3.weight
+        (5,0.7871020825551781) % sparsity_layer1.0.downsample.0.weight
+        (6,0.8978390848355868) % sparsity_layer1.0.downsample.1.weight
+        (7,0.7363583440182859) % sparsity_layer1.1.conv1.weight
+        (8,0.805561984122986) % sparsity_layer1.1.conv2.weight
+        (9,0.7824033989724086) % sparsity_layer1.1.conv3.weight
+        (10,0.7562060519985428) % sparsity_layer1.2.conv1.weight
+        (11,0.8183360652575601) % sparsity_layer1.2.conv2.weight
+        (12,0.8110691302210945) % sparsity_layer1.2.conv3.weight
+        (13,0.7757827429995561) % sparsity_layer2.0.conv1.weight
+        (14,0.8864263322507486) % sparsity_layer2.0.conv2.weight
+        (15,0.8384523966571119) % sparsity_layer2.0.conv3.weight
+        (16,0.8976287753964223) % sparsity_layer2.0.downsample.0.weight
+        (17,0.883615302748872) % sparsity_layer2.0.downsample.1.weight
+        (18,0.8942415003468885) % sparsity_layer2.1.conv1.weight
+        (19,0.9324207586222713) % sparsity_layer2.1.conv2.weight
+        (20,0.8574239375419233) % sparsity_layer2.1.conv3.weight
+        (21,0.8558449757458769) % sparsity_layer2.2.conv1.weight
+        (22,0.8815760700694892) % sparsity_layer2.2.conv2.weight
+        (23,0.8452472902304626) % sparsity_layer2.2.conv3.weight
+        (24,0.8387177106673945) % sparsity_layer2.3.conv1.weight
+        (25,0.8596428475203843) % sparsity_layer2.3.conv2.weight
+        (26,0.85035222120324) % sparsity_layer2.3.conv3.weight
+        (27,0.8183603523329509) % sparsity_layer3.0.conv1.weight
+        (28,0.9175053773103155) % sparsity_layer3.0.conv2.weight
+        (29,0.8285801921083858) % sparsity_layer3.0.conv3.weight
+        (30,0.9438857335228238) % sparsity_layer3.0.downsample.0.weight
+        (31,0.9286281881609517) % sparsity_layer3.0.downsample.1.weight
+        (32,0.894964938366848) % sparsity_layer3.1.conv1.weight
+        (33,0.9235769977282696) % sparsity_layer3.1.conv2.weight
+        (34,0.8556219638587383) % sparsity_layer3.1.conv3.weight
+        (35,0.8785842945742494) % sparsity_layer3.2.conv1.weight
+        (36,0.9353653341693509) % sparsity_layer3.2.conv2.weight
+        (37,0.8675730452080379) % sparsity_layer3.2.conv3.weight
+        (38,0.8711984197696347) % sparsity_layer3.3.conv1.weight
+        (39,0.9075270266985854) % sparsity_layer3.3.conv2.weight
+        (40,0.8781589617667027) % sparsity_layer3.3.conv3.weight
+        (41,0.8612977309509036) % sparsity_layer3.4.conv1.weight
+        (42,0.9262221655726617) % sparsity_layer3.4.conv2.weight
+        (43,0.8697907968223716) % sparsity_layer3.4.conv3.weight
+        (44,0.8572819874617756) % sparsity_layer3.5.conv1.weight
+        (45,0.9146205273113369) % sparsity_layer3.5.conv2.weight
+        (46,0.866527067398587) % sparsity_layer3.5.conv3.weight
+        (47,0.8497047197550897) % sparsity_layer4.0.conv1.weight
+        (48,0.9796623046002226) % sparsity_layer4.0.conv2.weight
+        (49,0.8724795005817878) % sparsity_layer4.0.conv3.weight
+        (50,0.9731808806127658) % sparsity_layer4.0.downsample.0.weight
+        (51,0.3310129801328063) % sparsity_layer4.0.downsample.1.weight
+        (52,0.9458619019625282) % sparsity_layer4.1.conv1.weight
+        (53,0.9803617992344703) % sparsity_layer4.1.conv2.weight
+        (54,0.8985328237613157) % sparsity_layer4.1.conv3.weight
+        (55,0.9452559881635356) % sparsity_layer4.2.conv1.weight
+        (56,0.9822928364234317) % sparsity_layer4.2.conv2.weight
+        (57,0.900164688242526) % sparsity_layer4.2.conv3.weight
+    };
+
+    \addplot[blue,fill opacity=0.2] fill between[of=upper and lower];
+
+    % downsample weights
+    \addplot[
+        only marks,
+        color=blue,
+        mark=star,
+    ]
+    coordinates {
+        (5,0.6976165771484375) % sparsity_layer1.0.downsample.0.weight
+        (6,0.82421875) % sparsity_layer1.0.downsample.1.weight
+        (16,0.7984428405761719) % sparsity_layer2.0.downsample.0.weight
+        (17,0.84765625) % sparsity_layer2.0.downsample.1.weight
+        (30,0.8314528465270996) % sparsity_layer3.0.downsample.0.weight
+        (31,0.916259765625) % sparsity_layer3.0.downsample.1.weight
+        (50,0.931512713432312) % sparsity_layer4.0.downsample.0.weight
+        (51,0.2755126953125) % sparsity_layer4.0.downsample.1.weight
+    };
+
+    % biases
+    \addplot[
+        only marks,
+        color=red,
+        mark=star,
+          error bars/.cd,
+          y dir=both,
+          y explicit
+    ]
+    coordinates {
+        (6,0.3466796875)  +- (0.03213766146856315,0.03213766146856315) % sparsity_layer1.0.downsample.1.bias
+        (17,0.666015625)  +- (0.02029747040119778,0.02029747040119778) % sparsity_layer2.0.downsample.1.bias
+        (31,0.65966796875)  +- (0.005920095533682686,0.005920095533682686) % sparsity_layer3.0.downsample.1.bias
+        (51,0.0670166015625)  +- (0.05687520352002295,0.05687520352002295) % sparsity_layer4.0.downsample.1.bias
+    };
+
+    % vertical lines
+    % \draw[dashed] (5,0) -- (5,1);
+    % \draw[dashed] (16,0) -- (16,1);
+    % \draw[dashed] (30,0) -- (30,1);
+    % \draw[dashed] (50,0) -- (50,1);
+
+    % \legend{Convolutions, Downsample Weights, Downsample Biases}
+
+    \end{axis}
+    \end{tikzpicture}

@@ -1,0 +1,27 @@
+
+defaults:
+  - ensembling
+  - _self_
+
+dataset_subset: '10p'
+cluster_ids:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+run_ids:
+    - SUB-928 #G from SUB-849
+    - SUB-997 #0 SUB-993
+    - SUB-1026 #1 SUB-1010
+    - SUB-1027 #2 SUB-1012
+    - SUB-1028 #3 SUB-1013
+    - SUB-1003 #4 SUB-995
+#cluster_ids:
+#  - 0
+#run_ids:
+#  - SUB-928 #G from SUB-849
+#  - SUB-990 #G from SUB-982
+##  - SUB-927 #G from SUB-916
+##  - SUB-929 #from SUB-920
+##  - SUB-930 #from SUB-919

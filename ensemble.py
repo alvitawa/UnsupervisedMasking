@@ -96,6 +96,7 @@ def main(cfg: DictConfig):
     assert cfg.dispatcher == 0
     datas = [load_data(run_id) for run_id in cfg.run_ids]
     assert all([data['label_names'] == datas[0]['label_names'] for data in datas])
+
     assert all([torch.all(data['train_labels'] == datas[0]['train_labels']) for data in datas])
     assert all([torch.all(data['val_labels'] == datas[0]['val_labels']) for data in datas])
     label_names = datas[0]['label_names']
@@ -107,18 +108,32 @@ def main(cfg: DictConfig):
     train_embeddings_norm = [data['train_embeddings_norm'].T for data in datas]
     val_embeddings_norm = [data['val_embeddings_norm'] for data in datas]
 
-    train_cluster_assignments = torch.tensor(torch.load('notebook/output_clustersB.pt'))
-    gm = torch.load('notebook/output_gmB.pt')
-    A, U, S, V, E = torch.load('notebook/output_pcaB.pt')
+    train_cluster_assignments = torch.tensor(torch.load('notebook/output_clusters.pt'))
+    gm = torch.load('notebook/output_gm.pt')
+    A, U, S, V, E = torch.load('notebook/output_pca.pt')
+    # train_cluster_assignments = torch.tensor(torch.load('notebook/output_clustersK.pt'))
+    # gm = torch.load('notebook/output_gmK.pt')
+    # A, U, S, V, E = torch.load('notebook/output_pcaK.pt')
 
     def assign(embeddings):
         embs = ((embeddings - A.mean(axis=0)) @ V @ torch.diag(1 / S)).cpu().numpy()
         predictions = gm.predict(embs)
         return torch.tensor(predictions)
 
+    # import pdb; pdb.set_trace()
     assert torch.all(assign(train_embeddings_norm[0]) == train_cluster_assignments)
 
     val_cluster_assignments = assign(val_embeddings_norm[0])
+
+    if cfg.subset_cluster:
+        assert cfg.baseline_index != cfg.dispatcher
+        subset_cluster_id = cfg.cluster_ids[cfg.baseline_index-1]
+        train_embeddings = [train_embeddings[i][train_cluster_assignments == subset_cluster_id] for i in range(len(train_embeddings))]
+        val_embeddings = [val_embeddings[i][val_cluster_assignments == subset_cluster_id] for i in range(len(val_embeddings))]
+        train_labels = train_labels[train_cluster_assignments == subset_cluster_id]
+        val_labels = val_labels[val_cluster_assignments == subset_cluster_id]
+        train_cluster_assignments = train_cluster_assignments[train_cluster_assignments == subset_cluster_id]
+        val_cluster_assignments = val_cluster_assignments[val_cluster_assignments == subset_cluster_id]
 
     # replace mode
     if method == 'replace':
@@ -156,10 +171,119 @@ def main(cfg: DictConfig):
             train_ensemble_embeddings[train_cluster_assignments != cluster, fro:to] = 0
             val_ensemble_embeddings[val_cluster_assignments != cluster, fro:to] = 0
     elif method == 'baseline':
-        train_ensemble_embeddings = train_embeddings[0]
-        val_ensemble_embeddings = val_embeddings[0]
+        train_ensemble_embeddings = train_embeddings[cfg.baseline_index]
+        val_ensemble_embeddings = val_embeddings[cfg.baseline_index]
+    elif method == 'pca_unconditional_white':
+        train_ensemble_embeddings_raw = torch.cat(train_embeddings, dim=1)
+        val_ensemble_embeddings_raw = torch.cat(val_embeddings, dim=1)
+
+        U, S, V = torch.pca_lowrank(train_ensemble_embeddings_raw, q=train_embeddings[0].shape[1], niter=10)
+
+        train_ensemble_embeddings_centered = train_ensemble_embeddings_raw - train_ensemble_embeddings_raw.mean(axis=0)
+
+        train_ensemble_embeddings = train_ensemble_embeddings_centered @ V
+
+        val_ensemble_embeddings_centered = val_ensemble_embeddings_raw - train_ensemble_embeddings_raw.mean(axis=0)
+        val_ensemble_embeddings = val_ensemble_embeddings_centered @ V
+    elif method == 'pca_conditional_white':
+        train_ensemble_embeddings_raw = torch.cat(train_embeddings, dim=1)
+        val_ensemble_embeddings_raw = torch.cat(val_embeddings, dim=1)
+
+        spl = train_embeddings[0].shape[1]
+        # zero out the embeddings of each cluster on the data points that do not belong to that cluster
+        for i, cluster in enumerate(cfg.cluster_ids):
+            fro = (i + 1) * spl
+            to = (i + 2) * spl
+            train_ensemble_embeddings_raw[train_cluster_assignments != cluster, fro:to] = 0
+            val_ensemble_embeddings_raw[val_cluster_assignments != cluster, fro:to] = 0
+
+        U, S, V = torch.pca_lowrank(train_ensemble_embeddings_raw, q=train_embeddings[0].shape[1], niter=10)
+        train_ensemble_embeddings = train_ensemble_embeddings_raw @ V
+
+        val_ensemble_embeddings_centered = val_ensemble_embeddings_raw - train_ensemble_embeddings_raw.mean(axis=0)
+
+        val_ensemble_embeddings = val_ensemble_embeddings_centered @ V
+    elif method == 'pca_unconditional':
+        train_ensemble_embeddings_raw = torch.cat(train_embeddings, dim=1)
+        val_ensemble_embeddings_raw = torch.cat(val_embeddings, dim=1)
+
+        U, S, V = torch.pca_lowrank(train_ensemble_embeddings_raw, q=train_embeddings[0].shape[1], niter=10)
+        train_ensemble_embeddings = U
+
+        train_ensemble_embeddings_centered = train_ensemble_embeddings_raw - train_ensemble_embeddings_raw.mean(axis=0)
+
+        R = train_ensemble_embeddings_centered @ V @ torch.diag(1 / S)
+        assert torch.all((U - R).pow(2).sum(1).sqrt() < 1e-4)
+
+        val_ensemble_embeddings_centered = val_ensemble_embeddings_raw - train_ensemble_embeddings_raw.mean(axis=0)
+        val_ensemble_embeddings = (val_ensemble_embeddings_centered @ V @ torch.diag(1 / S))
+    elif method == 'pca_conditional':
+        train_ensemble_embeddings_raw = torch.cat(train_embeddings, dim=1)
+        val_ensemble_embeddings_raw = torch.cat(val_embeddings, dim=1)
+
+
+        spl = train_embeddings[0].shape[1]
+        # zero out the embeddings of each cluster on the data points that do not belong to that cluster
+        for i, cluster in enumerate(cfg.cluster_ids):
+            fro = (i + 1) * spl
+            to = (i + 2) * spl
+            train_ensemble_embeddings_raw[train_cluster_assignments != cluster, fro:to] = 0
+            val_ensemble_embeddings_raw[val_cluster_assignments != cluster, fro:to] = 0
+
+        U, S, V = torch.pca_lowrank(train_ensemble_embeddings_raw, q=train_embeddings[0].shape[1], niter=10)
+        train_ensemble_embeddings = U
+
+        val_ensemble_embeddings_centered = val_ensemble_embeddings_raw - train_ensemble_embeddings_raw.mean(axis=0)
+
+
+        val_ensemble_embeddings = (val_ensemble_embeddings_centered @ V @ torch.diag(1 / S))
     else:
         raise NotImplementedError
+
+    if cfg.dataset_subset != '':
+        if cfg.dataset_subset[0] == 'b':
+            cfg.dataset_subset = cfg.dataset_subset[1:]
+            generator = torch.Generator()
+            generator.manual_seed(42)
+
+            percent_mode = cfg.dataset_subset[-1] == 'p'
+            n = int(int(cfg.dataset_subset) if not percent_mode else len(train_ensemble_embeddings) * float(
+                cfg.dataset_subset[:-1]) / 100)
+
+            # Get the unique labels and the number of samples per class
+            unique_labels, counts = np.unique(train_labels, return_counts=True)
+            samples_per_class = n // len(unique_labels)
+
+            # Create an empty tensor for the new balanced subset
+            balanced_train_ensemble_embeddings = torch.empty(
+                (samples_per_class * len(unique_labels), *train_ensemble_embeddings.shape[1:]))
+            balanced_train_labels = torch.empty(samples_per_class * len(unique_labels), dtype=train_labels.dtype)
+
+            # Iterate through each label and randomly select samples
+            for idx, label in enumerate(unique_labels):
+                label_indices = (train_labels == label).nonzero(as_tuple=True)[0]
+                label_randperm = torch.randperm(len(label_indices), generator=generator)[:samples_per_class]
+                selected_indices = label_indices[label_randperm]
+
+                balanced_train_ensemble_embeddings[idx * samples_per_class: (idx + 1) * samples_per_class] = \
+                train_ensemble_embeddings[selected_indices]
+                balanced_train_labels[idx * samples_per_class: (idx + 1) * samples_per_class] = train_labels[
+                    selected_indices]
+
+            # Replace the original data with the balanced subset
+            train_ensemble_embeddings = balanced_train_ensemble_embeddings
+            train_labels = balanced_train_labels
+        else:
+            generator = torch.Generator()
+            generator.manual_seed(42)
+
+            percent_mode = cfg.dataset_subset[-1] == 'p'
+            n = int(int(cfg.dataset_subset) if not percent_mode else len(train_ensemble_embeddings) * float(
+                cfg.dataset_subset[:-1]) / 100)
+            randperm = torch.randperm(len(train_ensemble_embeddings), generator=generator)[:n]
+
+            train_ensemble_embeddings = train_ensemble_embeddings[randperm]
+            train_labels = train_labels[randperm]
 
     val_ensemble_embeddings_norm = nn.functional.normalize(val_ensemble_embeddings, dim=1, p=2)
     train_ensemble_embeddings_norm = nn.functional.normalize(train_ensemble_embeddings, dim=1, p=2)
@@ -180,18 +304,20 @@ def main(cfg: DictConfig):
     # for i, l in enumerate(label_names):
     #     print(f'{l}: precision={precision[i]:.4f}, recall={recall[i]:.4f}')
 
-    X = train_ensemble_embeddings.numpy().astype('float64')
-    y = train_labels.numpy()
 
-    print(X.shape, y.shape)
+    if cfg.linear_probe:
+        X = train_ensemble_embeddings.numpy().astype('float64')
+        y = train_labels.numpy()
 
-    task = Task('Probing').start()
-    (r, b), score = linear_probe.probe_(cfg, X, y, bias=True)
-    task.done()
+        print(X.shape, y.shape)
 
-    y_pred = val_ensemble_embeddings.numpy() @ r + b
-    accuracy = (y_pred.argmax(axis=-1) == val_labels.numpy()).astype('float64').sum().item() / len(val_labels)
-    print(f'Linear probe accuracy: {accuracy}')
+        task = Task('Probing').start()
+        (r, b), score = linear_probe.probe_(cfg, X, y, bias=True)
+        task.done()
+
+        y_pred = val_ensemble_embeddings.numpy() @ r + b
+        accuracy = (y_pred.argmax(axis=-1) == val_labels.numpy()).astype('float64').sum().item() / len(val_labels)
+        print(f'Linear probe accuracy: {accuracy}')
 
     print(f'KNN Accuracy: {knn_accuracy}')
     print(f'Method: {method}')

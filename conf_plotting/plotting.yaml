@@ -4,6 +4,22 @@ plot:
 #  - resnet_model_size
   - part2_tables
 
+blacklist:
+  - SUB-1031
+  - SUB-1030
+  - SUB-1029
+  - SUB-1018
+  - SUB-1016
+  - SUB-1017
+  - SUB-1025
+  - SUB-1020
+  - SUB-1021
+  - SUB-1010
+  - SUB-1012
+  - SUB-1013
+  - SUB-1022
+  - SUB-1023
+
 variant_sparsity:
   runs:
     - SUB-210
@@ -32,14 +48,20 @@ resnet_model_size:
         - SUB-293
         - SUB-292
 
+fulltable_models:
+  - rn18-timm
+  - rn50-swav
+  - vitb32-clip
 part2_tables:
   -
     name: Full Fine-Tuning
     anchors:
       rn18-timm:
        - SUB-819
+       - SUB-1176 # post
       rn50-swav:
         - SUB-847
+        - SUB-1174 # post
     manuals:
       vitb32-clip:
         cifar10: 0.958
@@ -50,13 +72,16 @@ part2_tables:
         oxfordpets: 0.885
         sun397: 0.640
         ucf101: 0.809
+        inat: -1
   -
     name: Submasked
     anchors:
       rn18-timm:
        - SUB-820
+#       - SUB-1177 # post
       rn50-swav:
        - SUB-779
+       - SUB-1175 # post
 #      vitb32-clip:
 #        - SUB-890
       vitb32-clip:
@@ -71,10 +96,11 @@ part2_tables:
        - SUB-665
       rn50-swav:
        - SUB-862
-      Zrn50-timm:
-       - SUB-960
-      Zrn50-torch:
-        - SUB-969
+       - SUB-1016
+#      Zrn50-timm:
+#       - SUB-960
+#      Zrn50-torch:
+#        - SUB-969
     manuals:
       vitb32-clip:
         cifar10: 0.950
@@ -85,6 +111,8 @@ part2_tables:
         oxfordpets: 0.892
         sun397: 0.750
         ucf101: 0.833
+        inat: -1
+
 
 #free_runs:
   #rn18

@@ -75,17 +75,18 @@ class SWAVModule(ClassifierModule):
                     w = nn.functional.normalize(w, dim=1, p=2)
                     self.prototypes.W.weight.copy_(w)
 
-        # self.queue = torch.zeros(
-        #         len(self.cfg.swav.crops_for_assign),
-        #         self.cfg.swav.queue_length // 1,
-        #         self.cfg.swav.feat_dim,
-        #     ).to(self.device)
-        # self.queue.requires_grad = False
-        self.queue = None
+        self.queue = torch.zeros(
+                len(self.cfg.swav.crops_for_assign),
+                self.cfg.swav.queue_length // 1,
+                self.cfg.swav.feat_dim,
+            ).to(self.device_)
+
+        self.queue.requires_grad = False
 
         # the queue needs to be divisible by the batch size
         self.cfg.swav.queue_length -= self.cfg.swav.queue_length % (self.cfg.dl.batch_size * 1)
 
+        self.fill_the_queue = False
         self.use_the_queue = False
 
         if self.cfg.swav.fc == 'linear':
@@ -121,12 +122,8 @@ class SWAVModule(ClassifierModule):
         return super().configure_optimizers(head_params)
 
     def on_train_epoch_start(self) -> None:
-        if self.cfg.swav.queue_length > 0 and self.current_epoch >= self.cfg.swav.epoch_queue_starts and self.queue is None:
-            self.queue = torch.zeros(
-                len(self.cfg.swav.crops_for_assign),
-                self.cfg.swav.queue_length // 1,
-                self.cfg.swav.feat_dim,
-            ).to(self.device)
+        if self.cfg.swav.queue_length > 0 and self.current_epoch >= self.cfg.swav.epoch_queue_starts:
+            self.fill_the_queue = True
 
     def training_step(self, batch, batch_idx, namespace='train'):
         index, multi_crops, _label = batch
@@ -147,7 +144,7 @@ class SWAVModule(ClassifierModule):
         outs = []
         backbone_outs = []
         for end_idx in idx_crops:
-            backbone_out = self.model(torch.cat(multi_crops[start_idx: end_idx]).to(self.device))
+            backbone_out = self.forward(torch.cat(multi_crops[start_idx: end_idx]).to(self.device))
             backbone_outs.append(backbone_out.detach())
             _out = self.fc(backbone_out)
             outs.append(_out)
@@ -174,8 +171,10 @@ class SWAVModule(ClassifierModule):
                 out = output[bs * crop_id: bs * (crop_id + 1)].detach()
 
                 # time to use the queue
-                if self.queue is not None:
+                if self.fill_the_queue:
                     if self.use_the_queue or not torch.all(self.queue[i, -1, :] == 0):
+                        if not self.use_the_queue:
+                            print(f'Queue starts to be used at epoch {self.current_epoch}, step {self.global_step}')
                         self.use_the_queue = True
                         # out = torch.cat((torch.mm(
                         #     self.queue[i],

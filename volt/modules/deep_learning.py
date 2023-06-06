@@ -88,7 +88,7 @@ class DeepLearningModule(LightningModule):
         g.manual_seed(torch.initial_seed())
         return DataLoader(self.dataset[namespace], batch_size=self.cfg.dl.batch_size, shuffle=shuffle,
                           num_workers=self.cfg.dl.num_workers,
-                          multiprocessing_context=self.cfg.dl.multiprocessing_context if self.cfg.dl.multiprocessing_context != 'default' else None)  # , worker_init_fn=seed_worker, generator=g)
+                          multiprocessing_context=self.cfg.dl.multiprocessing_context if self.cfg.dl.multiprocessing_context != 'default' else None, worker_init_fn=seed_worker, generator=g)
 
     def forward_dataloader(self, namespace):
         return self.dataloader(namespace, False)

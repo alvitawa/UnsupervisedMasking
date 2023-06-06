@@ -29,6 +29,8 @@ class ClassifierConfig:
     mlp_hidden_dim: int = -1
     size_scale_wd: bool = False
     multihead_heads: int = 4
+    force_analysis_cpu: bool = False
+    knn_analysis: bool = True
 
 
 config.register('classifier', ClassifierConfig)
@@ -146,6 +148,8 @@ class ClassifierModule(DeepLearningModule):
         self.with_fc = True
 
     def knn_analysis(self, embedding, targets, feature_bank, feature_labels, namespace, bank=''):
+        if not self.cfg.cls.knn_analysis:
+            return
 
         classes = len(self.dataset['val'].label_names)
         if self.cfg.main.in_mvp:
@@ -154,8 +158,12 @@ class ClassifierModule(DeepLearningModule):
             knn_k = 200
             assert len(feature_bank) // classes / 2 < knn_k, 'knn_k is too large'
 
-        pred_labels = knn_predict(embedding, feature_bank, feature_labels, classes, knn_k, 0.1)
-        accuracy = (pred_labels[:, 0] == targets).float().sum().item() / embedding.shape[0]
+        device = embedding.device
+        if self.cfg.cls.force_analysis_cpu:
+            device = 'cpu'
+
+        pred_labels = knn_predict(embedding.to(device), feature_bank.to(device), feature_labels.to(device), classes, knn_k, 0.1)
+        accuracy = (pred_labels[:, 0] == targets.to(device)).float().sum().item() / embedding.shape[0]
         self.logger_.experiment[f'training/{namespace}/knn_accuracy{bank}'].log(accuracy)
 
     def analyze(self, outputs, sample_inputs, sample_outputs, namespace):

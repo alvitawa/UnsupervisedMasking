@@ -1,3 +1,4 @@
+import argparse
 import copy
 import dataclasses
 import getpass
@@ -11,6 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
+import pathlib
 import timm
 import torch
 
@@ -20,12 +22,17 @@ from neptune.new.types import File
 from pytorch_lightning.callbacks import ModelSummary
 from pytorch_lightning.utilities import model_summary
 from torch import nn
-from torchvision import datasets
+from torchvision import datasets, models
 from torchvision.transforms import transforms
 from transformers import AutoModel, AutoProcessor
 
-import subnetworks.simple_mnist_example
 from subnetworks import submasking
+
+if pathlib.Path('moco/').exists():
+    sys.path.append('moco/')
+import moco, main_moco, main_lincls
+from moco import builder
+
 from volt.modules import classifier, ssl
 from volt.modules.deep_learning import load_model_checkpoint, DeepLearningModule
 from volt.log import Task
@@ -135,6 +142,7 @@ class ModelPretrainedConfig:
     init_scores_std: float = 0.0
     init_scores_magnitude: bool = False
     init_scores_shuffle: bool = False
+    kaiming_scores_init: bool = False
     prune_criterion: str = 'threshold'
     prune_k: float = 0
     prune_progressive: bool = False
@@ -368,36 +376,7 @@ def train(cfg, mvp=False):
     task = Task(f"Executing {cfg.main.task}")
     task.start()
 
-    if cfg.main.model == 'supermask_convnet':
-        # TODO: per-model configs
-        mode = cfg.models.supermask_convnet.mode if 'mode' in cfg.models.supermask_convnet else 'topk'
-        subnetworks.simple_mnist_example.args = ddict(sparsity=cfg.models.supermask_convnet.sparsity,
-                                                      mode=mode)
-        model = subnetworks.simple_mnist_example.Net()
-        module = classifier.ClassifierModule(cfg, model, device, logger, train_dataset, val_dataset, test_dataset)
-    elif cfg.main.model == 'convnet':
-        model = subnetworks.simple_mnist_example.NetBaseline()
-        module = classifier.ClassifierModule(cfg, model, device, logger, train_dataset, val_dataset, test_dataset)
-    elif cfg.main.model == 'supermask_convnet_3c':
-        mode = cfg.models.supermask_convnet.mode if 'mode' in cfg.models.supermask_convnet else 'topk'
-        subnetworks.simple_mnist_example.args = ddict(sparsity=cfg.models.supermask_convnet.sparsity,
-                                                      mode=mode)
-        model = subnetworks.simple_mnist_example.Net3Channel()
-        module = classifier.ClassifierModule(cfg, model, device, logger, train_dataset, val_dataset, test_dataset)
-    elif cfg.main.model == 'convnet_3c':
-        model = subnetworks.simple_mnist_example.Net3ChannelBaseline()
-        module = classifier.ClassifierModule(cfg, model, device, logger, train_dataset, val_dataset, test_dataset)
-    elif cfg.main.model == 'Resnet18_supermask':
-        mode = cfg.models.supermask_convnet.mode if 'mode' in cfg.models.supermask_convnet else 'topk'
-        subnetworks.simple_mnist_example.args = ddict(sparsity=cfg.models.supermask_convnet.sparsity,
-                                                      mode=mode)
-        model = subnetworks.simple_mnist_example.ResNet18(prune_rate=cfg.models.supermask_convnet.sparsity,
-                                                          freeze_weights=True)
-        module = classifier.ClassifierModule(cfg, model, device, logger, train_dataset, val_dataset, test_dataset)
-    elif cfg.main.model == 'Resnet18':
-        model = subnetworks.simple_mnist_example.ResNet18(prune_rate=1, freeze_weights=False)
-        module = classifier.ClassifierModule(cfg, model, device, logger, train_dataset, val_dataset, test_dataset)
-    elif cfg.main.model == 'clip':
+    if cfg.main.model == 'clip':
         code = cfg.model.clip.code
         clip = AutoModel.from_pretrained(code).to(device)
         if cfg.model.clip.freeze_backbone:
@@ -563,6 +542,29 @@ def train(cfg, mvp=False):
                                  vision_model=clip.vision_model)
             fc_name = None
             fc_in_features = clip.visual_projection.in_features
+        elif cfg.model.pret.source == 'mocov2':
+            model = models.__dict__['resnet50']()
+            model.fc.weight.data.normal_(mean=0.0, std=0.01)
+            model.fc.bias.data.zero_()
+
+            checkpoint = torch.load("data/models/" + cfg.model.pret.name + ".pth.tar"
+                                    , map_location='cpu')
+            state_dict = checkpoint['state_dict']
+            for k in list(state_dict.keys()):
+                # retain only encoder_q up to before the embedding layer
+                if k.startswith("module.encoder_q") and not k.startswith(
+                    "module.encoder_q.fc"
+                ):
+                    # remove prefix
+                    state_dict[k[len("module.encoder_q.") :]] = state_dict[k]
+                # delete renamed or unused k
+                del state_dict[k]
+
+            msg = model.load_state_dict(state_dict, strict=False)
+            assert set(msg.missing_keys) == {"fc.weight", "fc.bias"}
+
+            fc_name = 'fc'
+            fc_in_features = model.fc.in_features
         else:
             raise ValueError(f"Unknown source {cfg.model.pret.source}")
 
@@ -586,7 +588,7 @@ def train(cfg, mvp=False):
             fc = model.__getattr__(fc_name)
             model.__setattr__(fc_name, head)
 
-        if re.match(r"(dino_)?resnet\d+", cfg.model.pret.name):
+        if re.match(r"(dino_)?resnet\d+", cfg.model.pret.name) or cfg.model.pret.source == 'mocov2':
             def par_sel(name, param):
                 if not param.requires_grad:
                     return 'freeze'
@@ -633,7 +635,7 @@ def train(cfg, mvp=False):
 
         if cfg.model.pret.prune_progressive and cfg.model.pret.prune_criterion == 'topk':
             k = lambda ctx: cfg.model.pret.prune_k_start - (
-                    ctx.epoch / cfg.dl.epochs * (cfg.model.pret.prune_k_start - cfg.model.pret.prune_k))
+                    ctx['epoch'] / cfg.dl.epochs * (cfg.model.pret.prune_k_start - cfg.model.pret.prune_k))
         elif cfg.model.pret.prune_progressive and cfg.model.pret.prune_criterion == 'threshold':
             k = lambda ctx: ctx.epoch / cfg.dl.epochs * cfg.model.pret.prune_k
         elif not cfg.model.pret.prune_progressive:
@@ -642,7 +644,10 @@ def train(cfg, mvp=False):
             raise NotImplementedError()
 
         if not cfg.model.pret.init_scores_magnitude:
-            scores_init = submasking.normal_scores_init(cfg.model.pret.init_scores_mean,
+            if cfg.model.pret.kaiming_scores_init:
+                scores_init = submasking.default_scores_init
+            else:
+                scores_init = submasking.normal_scores_init(cfg.model.pret.init_scores_mean,
                                                         cfg.model.pret.init_scores_std)
         else:
             scores_init = submasking.magnitude_scores_init(cfg.model.pret.init_scores_mean,

@@ -1,0 +1,18 @@
+
+defaults:
+  - ensembling
+  - _self_
+
+cluster_ids:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+run_ids:
+    - SUB-928 #G from SUB-849
+    - SUB-997 #0 SUB-993
+    - SUB-1192 #1 SUB-1080
+    - SUB-1194 #2 SUB-1081
+    - SUB-1195 #3 SUB-1082
+    - SUB-1003 #4 SUB-995

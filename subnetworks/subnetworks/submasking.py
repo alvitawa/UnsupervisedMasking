@@ -10,20 +10,6 @@ from matplotlib import pyplot as plt
 from torch import autograd, nn
 from torch.nn import ParameterList, ParameterDict
 
-def traverse_leaves(root, fn, seen=None, child=None, depth=0):
-    if seen is None:
-        seen = set()
-    seen.add(root)
-    parents = root.next_functions
-    if len(parents) == 0:
-        return fn(root, child, depth)
-    for parent, i in parents:
-        if parent in seen:
-            continue
-        if parent is not None:
-            traverse_leaves(parent, fn, seen, root, depth - 1)
-
-
 class GetSubnet(autograd.Function):
     @staticmethod
     def forward(ctx, scores, k, mode):
@@ -139,8 +125,8 @@ class SubmaskedModel(torch.nn.Module):
             unconventionally.
         """
         super().__init__()
-        object.__setattr__(self, 'model_shell', model)
-        # self.model_shell = model
+        # object.__setattr__(self, 'model_shell', model)
+        self.model_shell = model
 
         self.scale = scale
 
@@ -189,6 +175,44 @@ class SubmaskedModel(torch.nn.Module):
             data, scores_ = self.data[name_], self.scores[name_]
             data.requires_grad = False
             scores_init(scores_, data)
+
+
+    def get_masks(self, ctx=None):
+        if ctx is None:
+            ctx = {}
+        return list(GetSubnet.apply(s, self.k(ctx), self.prune_criterion) for s in self.scores.values())
+
+    def forward(self, *args, ctx=None, **kwargs):
+        if ctx is None:
+            ctx = {}
+
+        for name, data, param_shell, scores, slot in self.masked_params:
+            # Get the current mask
+            mask = GetSubnet.apply(scores, self.k(ctx), self.prune_criterion)
+            if self.scale:
+                # Scale the weights to keep the output variance constant
+                data_scaled = data * torch.sqrt(1/mask.mean())
+            else:
+                data_scaled = data
+            if self.shell_mode == 'copy':
+                # Detach the gradients from the previous forward pass
+                param_shell.detach_()
+                # Copy the data over into the shell parameter
+                param_shell.copy_(data_scaled * mask)
+            elif self.shell_mode == 'replace':
+                # This is a bit tricky, the parameter needs to be replaced in a such a way that the gradients are not
+                # lost. Since the Parameter constructor does not have a grad_fn, we do not directly initialize it
+                # with the masked weights, instead we dummy-initialize it and then copy the data over with copy_, which
+                # does have a grad_fn.
+                masked_weights = data_scaled * mask
+                parameter = torch.nn.Parameter(torch.empty_like(masked_weights), requires_grad = False)
+                set_attribute(self.model_shell, name, parameter)
+                parameter.copy_(masked_weights)
+                # Dont need to detach the gradients in 'replace' mode, since the old parameter is not used
+
+        # Now just forward through the model copy
+        result = self.model_shell(*args, **kwargs)
+        return result
 
     def analyze(self, ctx=None, depth_analysis=False):
         if ctx is None:
@@ -249,105 +273,6 @@ class SubmaskedModel(torch.nn.Module):
             analysis['min_score_{}'.format(slot)] = slot_min_score
 
         return analysis
-
-    def depth_analysis(self, ctx=None):
-        """
-            WARNING
-
-            This code corrupts the model somehow.
-
-            WARNING
-        """
-        assert self.test_input is not None
-        analysis = {}
-
-        prev = torch.is_grad_enabled()
-        mode = self.training
-
-
-        # Temporarily re-enable gradients to get the computation graph
-        torch.set_grad_enabled(True)
-        self.train()
-        result = self.forward(self.test_input, ctx=ctx)
-
-
-        # The metrics dont work during validation sometimes
-        if result.grad_fn is not None:
-
-            param_map = {}
-            for name, data, param_shell, scores, slot in self.masked_params:
-                param_map[id(scores)] = slot
-
-            slot_ratios = {}
-
-            def f(root, child, depth):
-                slot = param_map.get(id(root.variable), None)
-                if slot is not None:
-                    mask = GetSubnet.apply(root.variable, self.k(ctx), self.prune_criterion)
-                    ratio = mask.mean().item()
-                    slot_ratios.setdefault(slot, dict()).setdefault(depth, []).append(ratio)
-
-            traverse_leaves(result.grad_fn, f)
-
-            analysis['data'] = str(slot_ratios)
-
-            for slot, ratios in slot_ratios.items():
-                ordered_ratios = sorted(ratios.items(), key=lambda x: x[0])
-                y0 = [min(r[1]) for r in ordered_ratios]
-                y1 = [max(r[1]) for r in ordered_ratios]
-                x = list(range(len(y0)))
-
-                fig = plt.figure()
-                plt.title(slot)
-                plt.fill_between(x, y0, y1, alpha=0.6)
-                plt.plot(x, (np.array(y0) + np.array(y1)) / 2)
-                plt.scatter(x, (np.array(y0) + np.array(y1)) / 2)
-                plt.xlabel('Depth')
-                plt.ylabel('Ratio')
-                plot = fig2img(fig)
-                plt.close(fig)
-
-                analysis['plot_{}'.format(slot)] = plot
-
-
-        # Restore the previous state of grad
-        torch.set_grad_enabled(prev)
-        self.train(mode)
-        return analysis
-
-    def get_masks(self, ctx=None):
-        if ctx is None:
-            ctx = {}
-        return list(GetSubnet.apply(s, self.k(ctx), self.prune_criterion) for s in self.scores.values())
-
-    def forward(self, *args, ctx=None, **kwargs):
-        if ctx is None:
-            ctx = {}
-
-        for name, data, param_shell, scores, slot in self.masked_params:
-            mask = GetSubnet.apply(scores, self.k(ctx), self.prune_criterion)
-            if self.scale:
-                data_scaled = data * torch.sqrt(1/mask.mean())
-            else:
-                data_scaled = data
-            if self.shell_mode == 'copy':
-                # Detach the gradients from the previous forward pass
-                param_shell.detach_()
-                param_shell.copy_(data_scaled * mask)
-            elif self.shell_mode == 'replace':
-                # This is a bit tricky, the parameter needs to be replaced in a such a way that the gradients are not
-                # lost. Since the Parameter constructor does not have a grad_fn, we do not directly initialize it
-                # with the masked weights, instead we dummy-initialize it and then copy the data over with copy_, which
-                # does have a grad_fn.
-                masked_weights = data_scaled * mask
-                parameter = torch.nn.Parameter(torch.empty_like(masked_weights), requires_grad = False)
-                set_attribute(self.model_shell, name, parameter)
-                parameter.copy_(masked_weights)
-                # Dont need to detach the gradients in 'replace' mode, since the old parameter is not used
-
-        # Now just forward through the model copy
-        result = self.model_shell(*args, **kwargs)
-        return result
 
 
 def fig2img(fig):

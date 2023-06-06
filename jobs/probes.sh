@@ -1,0 +1,16 @@
+python3 main.py --config-name=baseline model.pret.source=hub model.pret.name=resnet50 dl.lr=0.15 dl.weight_decay=0.000001 model.pret.module=swav swav.queue_length=512 swav.epoch_queue_starts=30 swav.nmb_prototypes=500 main.dataset=dtd main.train=0 main.probe=1 main.load_checkpoint=SUB-1217/last.ckpt &
+python3 main.py --config-name=baseline model.pret.source=hub model.pret.name=resnet50 dl.lr=0.15 dl.weight_decay=0.000001 model.pret.module=swav swav.queue_length=512 swav.epoch_queue_starts=30 swav.nmb_prototypes=500 main.dataset=eurosat main.train=0 main.probe=1 main.load_checkpoint=SUB-1224/last.ckpt &
+python3 main.py --config-name=baseline model.pret.source=hub model.pret.name=resnet50 dl.lr=0.15 dl.weight_decay=0.000001 model.pret.module=swav swav.queue_length=512 swav.epoch_queue_starts=30 swav.nmb_prototypes=500 main.dataset=flowers main.train=0 main.probe=1 main.load_checkpoint=SUB-1225/last.ckpt &
+python3 main.py --config-name=baseline model.pret.source=hub model.pret.name=resnet50 dl.lr=0.15 dl.weight_decay=0.000001 model.pret.module=swav swav.queue_length=512 swav.epoch_queue_starts=30 swav.nmb_prototypes=500 main.dataset=oxfordpets main.train=0 main.probe=1 main.load_checkpoint=SUB-1223/last.ckpt &
+python3 main.py --config-name=baseline model.pret.source=hub model.pret.name=resnet50 dl.lr=0.15 dl.weight_decay=0.000001 model.pret.module=swav swav.queue_length=512 swav.epoch_queue_starts=30 swav.nmb_prototypes=500 main.dataset=ucf101 main.train=0 main.probe=1 main.load_checkpoint=SUB-1226/last.ckpt
+
+
+python3 main.py --config-name=submask_lin model.pret.source=hub model.pret.name=resnet50 model.pret.module=swav dl.scheduler=cosine cls.head_lr=0.15 cls.head_wd=0.000001 swav.queue_length=512 swav.epoch_queue_starts=30 swav.nmb_prototypes=500 dl.scheduler=cosine main.dataset=dtd main.train=0 main.probe=1 main.load_checkpoint=SUB-1216/last.ckpt &
+
+python3 main.py --config-name=submask_lin model.pret.source=hub model.pret.name=resnet50 model.pret.module=swav dl.scheduler=cosine cls.head_lr=0.15 cls.head_wd=0.000001 swav.queue_length=512 swav.epoch_queue_starts=30 swav.nmb_prototypes=500 dl.scheduler=cosine main.dataset=eurosat main.train=0 main.probe=1 main.load_checkpoint=SUB-1218/last.ckpt &
+
+python3 main.py --config-name=submask_lin model.pret.source=hub model.pret.name=resnet50 model.pret.module=swav dl.scheduler=cosine cls.head_lr=0.15 cls.head_wd=0.000001 swav.queue_length=512 swav.epoch_queue_starts=30 swav.nmb_prototypes=500 dl.scheduler=cosine main.dataset=flowers main.train=0 main.probe=1 main.load_checkpoint=SUB-1220/last.ckpt &
+
+python3 main.py --config-name=submask_lin model.pret.source=hub model.pret.name=resnet50 model.pret.module=swav dl.scheduler=cosine cls.head_lr=0.15 cls.head_wd=0.000001 swav.queue_length=512 swav.epoch_queue_starts=30 swav.nmb_prototypes=500 dl.scheduler=cosine main.dataset=oxfordpets main.train=0 main.probe=1 main.load_checkpoint=SUB-1221/last.ckpt &
+
+python3 main.py --config-name=submask_lin model.pret.source=hub model.pret.name=resnet50 model.pret.module=swav dl.scheduler=cosine cls.head_lr=0.15 cls.head_wd=0.000001 swav.queue_length=512 swav.epoch_queue_starts=30 swav.nmb_prototypes=500 dl.scheduler=cosine main.dataset=ucf101 main.train=0 main.probe=1 main.load_checkpoint=SUB-1219/last.ckpt

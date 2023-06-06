@@ -1,0 +1,53 @@
+
+defaults:
+  - ensembling
+  - _self_
+
+cluster_ids:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+run_ids:
+    - SUB-1168 #G from SUB-1079
+    - SUB-1236 #0 from 1169
+    - SUB-1237 #1 from 1170
+    - SUB-1238 #2 from 1171
+    - SUB-1240 #3 from 1173
+    - SUB-1239 #4 from 1172
+#cluster_ids:
+#  - 0
+#run_ids:
+#  - SUB-928 #G from SUB-849
+#  - SUB-990 #G from SUB-982
+##  - SUB-927 #G from SUB-916
+##  - SUB-929 #from SUB-920
+##  - SUB-930 #from SUB-919
+#In [7]: x=24465; print(50000 / x * 150); print(50000 / x * 30)
+#306.5603923973023
+#61.31207847946045
+#
+#In [8]: x=20804; print(50000 / x * 150); print(50000 / x * 30)
+#360.5075946933282
+#72.10151893866565
+#
+#In [9]: x=39001; print(50000 / x * 150); print(50000 / x * 30)
+#192.30276146765468
+#38.46055229353094
+#
+#In [10]: x=30600; print(50000 / x * 150); print(50000 / x * 30)
+#245.09803921568627
+#49.01960784313725
+#
+#In [11]: x=23124; print(50000 / x * 150); print(50000 / x * 30)
+#324.3383497664764
+#64.86766995329529
+#
+# ./run.sh python3 main.py --config-name=submask_lin model.pret.source=hub model.pret.name=resnet50 model.pret.module=swav main.dataset=multicrop_inat dl.scheduler=cosine cls.head_lr=0.15 cls.head_wd=0.000001 swav.queue_length=512 swav.nmb_prototypes=500 dl.scheduler=cosine cls.force_analysis_cpu=1 main.dataset_subset_clusters_file=notebook/output_clustersK.pt main.load_checkpoint=SUB-1079/last.ckpt swav.epoch_queue_starts=61 dl.epochs=307 main.dataset_subset_cluster=0
+# ./run.sh python3 main.py --config-name=submask_lin model.pret.source=hub model.pret.name=resnet50 model.pret.module=swav main.dataset=multicrop_inat dl.scheduler=cosine cls.head_lr=0.15 cls.head_wd=0.000001 swav.queue_length=512 swav.nmb_prototypes=500 dl.scheduler=cosine cls.force_analysis_cpu=1 main.dataset_subset_clusters_file=notebook/output_clustersK.pt main.load_checkpoint=SUB-1079/last.ckpt swav.epoch_queue_starts=72 dl.epochs=361 main.dataset_subset_cluster=1
+# ./run.sh python3 main.py --config-name=submask_lin model.pret.source=hub model.pret.name=resnet50 model.pret.module=swav main.dataset=multicrop_inat dl.scheduler=cosine cls.head_lr=0.15 cls.head_wd=0.000001 swav.queue_length=512 swav.nmb_prototypes=500 dl.scheduler=cosine cls.force_analysis_cpu=1 main.dataset_subset_clusters_file=notebook/output_clustersK.pt main.load_checkpoint=SUB-1079/last.ckpt swav.epoch_queue_starts=38 dl.epochs=192 main.dataset_subset_cluster=2
+# ./run.sh python3 main.py --config-name=submask_lin model.pret.source=hub model.pret.name=resnet50 model.pret.module=swav main.dataset=multicrop_inat dl.scheduler=cosine cls.head_lr=0.15 cls.head_wd=0.000001 swav.queue_length=512 swav.nmb_prototypes=500 dl.scheduler=cosine cls.force_analysis_cpu=1 main.dataset_subset_clusters_file=notebook/output_clustersK.pt main.load_checkpoint=SUB-1079/last.ckpt swav.epoch_queue_starts=49 dl.epochs=245 main.dataset_subset_cluster=3
+# ./run.sh python3 main.py --config-name=submask_lin model.pret.source=hub model.pret.name=resnet50 model.pret.module=swav main.dataset=multicrop_inat dl.scheduler=cosine cls.head_lr=0.15 cls.head_wd=0.000001 swav.queue_length=512 swav.nmb_prototypes=500 dl.scheduler=cosine cls.force_analysis_cpu=1 main.dataset_subset_clusters_file=notebook/output_clustersK.pt main.load_checkpoint=SUB-1079/last.ckpt swav.epoch_queue_starts=65 dl.epochs=324 main.dataset_subset_cluster=4
+
+

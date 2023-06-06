@@ -2,10 +2,14 @@
 defaults:
     - /linear_probe@lp
 
+dataset_subset: ''
 method: replace
+linear_probe: 1
 dispatcher: 0
+baseline_index: 0
+subset_cluster: 0
 cluster_ids:
-  - 1
+  - 0
   - 4
 run_ids:
     - SUB-928 #G from SUB-849

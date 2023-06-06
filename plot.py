@@ -132,6 +132,9 @@ exemptions = [
     r"^main.verbose$",
     r"^main.save_top_k$",
     r"^save_every_n_epochs$",
+    r"^main.force_cpu$",
+    r"^cls.force_analysis_cpu$",
+    r"^main.run$",
 ]
 
 
@@ -151,29 +154,34 @@ def get_recursive(d, path: str):
     return get_recursive(d[next_path], rest)
 
 
-def check_subseteq(anchor_params, candidate_params):
+def check_subseteq(anchor_params, candidate_params, verbose=False):
     for p, v in iterdict(anchor_params):
         if any(re.match(ex, p) for ex in exemptions):
             continue
         try:
             if get_recursive(candidate_params, p) != v:
-                print(f"Param {p} is not equal: {v} != {get_recursive(candidate_params, p)}")
+                if verbose:
+                    print(f"Param {p} is not equal: {v} != {get_recursive(candidate_params, p)}")
                 break
         except KeyError:
-            print(f"Param {p} is not in candidate")
+            if verbose:
+                print(f"Param {p} is not in candidate")
             break
     else:
         return True
     return False
 
 
-def get_similar(runs_df, run_ids):
+def get_similar(cfg, runs_df, run_ids):
     anchor_params_all = list(get_params_cached(run_id) for run_id in run_ids)
     results = []
     for candidate_run_id in runs_df['sys/id']:
+        if candidate_run_id in cfg.blacklist:
+            continue
         candidate_params = get_params_cached(candidate_run_id)
+        verbose = 'SUB-819' in run_ids and candidate_run_id == 'SUB-1018'
         # iterate over all k/v pairs in nested dict
-        if any(check_subseteq(anchor_params, candidate_params) for anchor_params in anchor_params_all):
+        if any(check_subseteq(anchor_params, candidate_params, verbose) for anchor_params in anchor_params_all):
             results.append((candidate_run_id, candidate_params))
     return results
 
@@ -192,10 +200,10 @@ def part2_tables(cfg):
         points_acc_knn = {}
         for model_name, run_ids in table.anchors.items():
             anchor_metrics = get_metrics_cached(run_ids[0])
-            sim = get_similar(df, run_ids)
+            sim = get_similar(cfg, df, run_ids)
             for run_id, params in sim:
                 acc, sparsity, acc_knn, epoch = get_metrics_cached(run_id)
-                if epoch != anchor_metrics[3]:
+                if epoch != anchor_metrics[3] and get_recursive(params, 'main.load_checkpoint') == '':
                     continue
                 row = model_name
                 col = get_recursive(params, 'main.dataset').replace('cifar10pgn', 'cifar10')
@@ -227,26 +235,27 @@ def part2_tables(cfg):
         columns = sorted(set(col for _, col in points_acc.keys()))
         rows = list(model_name for model_name, _ in table.anchors.items())
 
-        df_ids = pd.DataFrame(columns=columns, index=rows, data=np.full((len(rows), len(columns)), ""))
+        df_ids = pd.DataFrame(columns=columns, index=rows, data=np.full((len(rows), len(columns)), "-"))
         for (row, col), ids in points_ids.items():
             df_ids.loc[row, col] = ",".join(ids)
         df_ids.to_csv(PLOT_DATA_PATH + f"part2_accuracy/horizontal/part2_{name}_ids.csv", sep="\t")
 
         # empty df of right shape (filled with empty strings)
-        df_acc = pd.DataFrame(columns=columns, index=rows, data=np.full((len(rows), len(columns)), ""))
+        df_acc = pd.DataFrame(columns=columns, index=rows, data=np.full((len(rows), len(columns)), "-"))
         for (row, col), accs in points_acc.items():
-            df_acc.loc[row, col] = f"{np.mean(accs):.2f} ± {np.std(accs):.2f}_{len(accs)}"
+            df_acc.loc[row, col] = f"{np.mean(accs):.3f} ± {np.std(accs):.3f}_{len(accs)}"
         df_acc.to_csv(PLOT_DATA_PATH + f"part2_accuracy/horizontal/part2_{name}_accuracy.csv", sep="\t")
 
-        df_sparsity = pd.DataFrame(columns=columns, index=rows, data=np.full((len(rows), len(columns)), ""))
+        df_sparsity = pd.DataFrame(columns=columns, index=rows, data=np.full((len(rows), len(columns)), "-"))
         for (row, col), sparsities in points_sparsity.items():
-            sparsities = [1 - s for s in sparsities]
-            df_sparsity.loc[row, col] = f"{np.mean(sparsities):.2f} ± {np.std(sparsities):.2f}_{len(sparsities)}"
+            # sparsities = [1 - s for s in sparsities]
+            sparsities = [s for s in sparsities]
+            df_sparsity.loc[row, col] = f"{np.mean(sparsities):.1%} ± {np.std(sparsities):.3%}_{len(sparsities)}".replace("%", "\\%")
         df_sparsity.to_csv(PLOT_DATA_PATH + f"part2_accuracy/horizontal/part2_{name}_sparsity.csv", sep="\t")
 
-        df_acc_knn = pd.DataFrame(columns=columns, index=rows, data=np.full((len(rows), len(columns)), ""))
+        df_acc_knn = pd.DataFrame(columns=columns, index=rows, data=np.full((len(rows), len(columns)), "-"))
         for (row, col), accs in points_acc_knn.items():
-            df_acc_knn.loc[row, col] = f"{np.mean(accs):.2f} ± {np.std(accs):.2f}_{len(accs)}"
+            df_acc_knn.loc[row, col] = f"{np.mean(accs):.3f} ± {np.std(accs):.3f}_{len(accs)}"
         df_acc_knn.to_csv(PLOT_DATA_PATH + f"part2_accuracy/horizontal/part2_{name}_accuracy_knn.csv", sep="\t")
 
         tables[name] = {'ids': df_ids, 'acc': df_acc, 'sparsity': df_sparsity, 'acc_knn': df_acc_knn}
@@ -272,7 +281,7 @@ def part2_tables(cfg):
             columns = list(t.name for t in cfg.part2_tables if t.name in columns)
             rows = sorted(set(row for row, _ in points.keys()))
 
-            df = pd.DataFrame(columns=columns, index=rows, data=np.full((len(rows), len(columns)), ""))
+            df = pd.DataFrame(columns=columns, index=rows, data=np.full((len(rows), len(columns)), "-"))
             for (row, col), values in points.items():
                 # values should only really contain one item, but this way
                 # we can see if that doesn't happen
@@ -295,25 +304,42 @@ def part2_tables(cfg):
             for row_original in df.index:  # model
                 for col_original in df.columns:  # dataset
                     shorthand = table_name.replace("Full Fine-Tuning", "FFT").replace("Linear Probe", "LP").replace(
-                        "Submasked", "FS")
+                        "Submasked", "M")
                     row, col = f"{row_original}+{shorthand}", col_original
                     if (row, col) not in points:
                         points[(row, col)] = []
                     points[(row, col)].append(df.loc[row_original, col_original])
         columns = sorted(set(col for _, col in points.keys()))  # dataset
 
-        rows_methods = ['LP', 'FS', 'FFT']
-        rows_models = ['rn18-timm', 'rn50-swav']
+        rows_methods = ['LP', 'M', 'FFT']
+        if metric == 'sparsity':
+            rows_methods = ['M']
+        rows_models = cfg.fulltable_models
         rows = list(f"{model_name}+{method}" for model_name in rows_models for method in rows_methods)
 
-        df = pd.DataFrame(columns=columns, index=rows, data=np.full((len(rows), len(columns)), ""))
+        df = pd.DataFrame(columns=columns, index=rows, data=np.full((len(rows), len(columns)), "-"))
         for (row, col), values in points.items():
             if metric != 'ids':
                 stripped = values[0].split(" ± ")[0]
             else:
                 stripped = values[0]
             assert len(values) == 1, f"More than one value for {row}, {col}: {values}"
+            if row not in rows:
+                print(f"Skipping {row}")
+                continue
             df.loc[row, col] = stripped
+        if metric == 'acc':
+            df.replace('-1.00', '-', inplace=True)
+            # make bold the best value per column for each model name
+            for model_name in rows_models:
+                rows = [row for row in df.index if row.startswith(model_name)]
+                for col in df.columns:
+                    ff = df.loc[rows, col].replace('-','0').astype(float)
+                    best = ff.max()
+                    all_best = ff[ff == best].index
+                    replacements = df.loc[all_best, col].map(lambda x: f"\\textbf{{{x}}}")
+                    df.loc[all_best, col] = replacements
+
         df.to_csv(PLOT_DATA_PATH + f"part2_accuracy/full/part2_{metric}.csv", sep="\t", index_label='Model+Method')
 
 @hydra.main(version_base=None, config_path="conf_plotting", config_name="plotting")

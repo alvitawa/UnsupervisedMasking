@@ -10,12 +10,13 @@ from PIL import ImageFilter
 from torch import nn
 from torch.utils.data import Dataset
 from torchvision import datasets
-from torchvision.transforms import transforms
+from torchvision.transforms import transforms, InterpolationMode
 
 import pgn
 from pgn import datamodules
+from pgn.datamodules.utils import Solarize
 from pgn.datasets.json_dataset import JSONDataset
-from volt import util
+from volt import util, choe_dataset
 
 
 class SliceableDataset(Dataset):
@@ -206,6 +207,7 @@ def pgn_get_dataset(cfg, dmodule):
 def get_dataset(cfg):
     name = cfg.main.dataset
     if name == 'cifar10':
+        assert False, "Use cifar10pgn instead of cifar10"
         return get_cifar10(cfg)
     elif name == 'mnist':
         return get_mnist(cfg)
@@ -233,6 +235,100 @@ def get_dataset(cfg):
         return pgn_get_dataset(cfg, pgn.datamodules.svhn_datamodule.SVHNDataModule)
     elif name == 'ucf101':
         return pgn_get_dataset(cfg, pgn.datamodules.ucf101_datamodule.UCF101DataModule)
+    elif name == 'inat':
+        vals = ('', 0, 0, 0, 1.0, 0.8, 0.2, 0.2)
+        data_root = vals[0]
+        train_batch_size = vals[1]
+        test_batch_size = vals[2]
+        num_workers = vals[3]
+        scale_lower_bound = vals[4]
+        jitter_prob = vals[5]
+        greyscale_prob = vals[6]
+        solarize_prob = vals[7]
+        train_transform = torchvision.transforms.Compose([
+            torchvision.transforms.RandomResizedCrop(
+                224,
+                scale=(scale_lower_bound, 1.),
+                interpolation=InterpolationMode.BICUBIC
+            ),
+
+            torchvision.transforms.RandomApply([
+                torchvision.transforms.ColorJitter(0.4, 0.4, 0.4, 0.4)
+            ], p=jitter_prob),
+            torchvision.transforms.RandomGrayscale(p=greyscale_prob),
+            torchvision.transforms.RandomApply([Solarize()],
+                                               p=solarize_prob),
+            torchvision.transforms.RandomHorizontalFlip(),
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Normalize(
+                mean=(0.48145466, 0.4578275, 0.40821073),
+                std=(0.26862954, 0.26130258, 0.27577711)
+            ),
+        ])
+
+        test_transform = torchvision.transforms.Compose([
+            torchvision.transforms.Resize(size=224),
+            torchvision.transforms.CenterCrop(size=224),
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Normalize(
+                mean=(0.48145466, 0.4578275, 0.40821073),
+                std=(0.26862954, 0.26130258, 0.27577711)
+            ),
+        ])
+
+        data_roots = {
+            split: os.path.join(cfg.main.data_path, 'iNat500', 'iNatLoc')
+            for split in choe_dataset._SPLITS
+        }
+        metadata_root = os.path.join(cfg.main.data_path, 'iNat500', 'metadata_choe')
+
+        datasets = {
+            split:
+                choe_dataset.WSOLImageLabelDataset(
+                    data_root=data_roots[split],
+                    metadata_root=os.path.join(metadata_root, split),
+                    transform=train_transform if split == 'train' else test_transform,
+                    proxy=False,
+                    num_sample_per_class=0
+                )
+            for split in choe_dataset._SPLITS
+        }
+        datasets_unaugmented = {
+            split:
+                choe_dataset.WSOLImageLabelDataset(
+                    data_root=data_roots[split],
+                    metadata_root=os.path.join(metadata_root, split),
+                    transform=test_transform,
+                    proxy=False,
+                    num_sample_per_class=0
+                )
+            for split in choe_dataset._SPLITS
+        }
+
+        class_names = open(os.path.join(metadata_root, 'class_names.txt')).read().splitlines()
+        class_names = [class_name.split(',')[0] for class_name in class_names]
+
+        train_dataset = ChloeDatasetWrapper(datasets['train'], class_names)
+        val_dataset = ChloeDatasetWrapper(datasets['val'], class_names)
+        train_dataset_unaugmented = ChloeDatasetWrapper(datasets_unaugmented['train'], class_names)
+
+        transform = torch.nn.Identity()
+        mean = (0.48145466, 0.4578275, 0.40821073)
+        std = (0.26862954, 0.26130258, 0.27577711)
+        untransform = transforms.Compose([
+            util.UnNormalize(mean=mean, std=std),
+            transforms.ToPILImage()
+        ])
+
+        train_dataset = ClassDataset(train_dataset, transform, untransform,
+                                             labels=range(len(class_names)), label_names=class_names)
+        val_dataset = ClassDataset(val_dataset, transform, untransform,
+                                             labels=range(len(class_names)), label_names=class_names)
+        train_dataset_unaugmented = ClassDataset(train_dataset_unaugmented, transform, untransform,
+                                                    labels=range(len(class_names)), label_names=class_names)
+
+        return train_dataset, val_dataset, None, train_dataset_unaugmented
+
 
 
 
@@ -340,6 +436,17 @@ def get_color_distortion(s=1.0):
     color_distort = transforms.Compose([rnd_color_jitter, rnd_gray])
     return color_distort
 
+class ChloeDatasetWrapper(Dataset):
+    def __init__(self, dataset, classes):
+        self.dataset = dataset
+        self.classes = classes
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, index):
+        image, image_label, _image_id = self.dataset[index]
+        return image, image_label
 
 def get_multicrop_dataset(cfg):
     dataset_name = cfg.main.dataset
@@ -412,8 +519,211 @@ def get_multicrop_dataset(cfg):
         val_dataset.classes = list(map(lambda x: x[0], sorted(val_dataset.class_to_idx.items(), key=lambda x: x[1])))
         train_dataset_unaugmented.classes = list(map(lambda x: x[0], sorted(train_dataset_unaugmented.class_to_idx.items(), key=lambda x: x[1])))
         val_dataset_unaugmented.classes = list(map(lambda x: x[0], sorted(val_dataset_unaugmented.class_to_idx.items(), key=lambda x: x[1])))
+    elif dataset_name == 'multicrop_inat':
+        data_roots = {
+            split: os.path.join(cfg.main.data_path, 'iNat500', 'iNatLoc')
+            for split in choe_dataset._SPLITS
+        }
+        metadata_root = os.path.join(cfg.main.data_path, 'iNat500', 'metadata_choe')
+        datasets = {
+            split:
+                choe_dataset.WSOLImageLabelDataset(
+                    data_root=data_roots[split],
+                    metadata_root=os.path.join(metadata_root, split),
+                    transform=torchvision.transforms.Compose([]),
+                    proxy=False,
+                    num_sample_per_class=0
+                )
+            for split in choe_dataset._SPLITS
+        }
+        datasets_unaugmented = {
+            split:
+                choe_dataset.WSOLImageLabelDataset(
+                    data_root=data_roots[split],
+                    metadata_root=os.path.join(metadata_root, split),
+                    transform=test_transform,
+                    proxy=False,
+                    num_sample_per_class=0
+                )
+            for split in choe_dataset._SPLITS
+        }
+        class_names = open(os.path.join(metadata_root, 'class_names.txt')).read().splitlines()
+        class_names = [class_name.split(',')[0] for class_name in class_names]
 
-
+        train_dataset = ChloeDatasetWrapper(datasets['train'], class_names)
+        val_dataset = ChloeDatasetWrapper(datasets['val'], class_names)
+        train_dataset_unaugmented = ChloeDatasetWrapper(datasets_unaugmented['train'], class_names)
+        val_dataset_unaugmented = ChloeDatasetWrapper(datasets_unaugmented['val'], class_names)
+    elif dataset_name == 'multicrop_dtd':
+        root_dir = os.path.join(cfg.main.data_path, 'dtd')
+        train_dataset = JSONDataset(
+            json_path=os.path.join(root_dir,
+                                   'split_zhou_DescribableTextures.json'),
+            data_root=os.path.join(root_dir, 'images'),
+            split='train',
+            transforms=torchvision.transforms.Compose([])
+        )
+        val_dataset = JSONDataset(
+            json_path=os.path.join(root_dir,
+                                   'split_zhou_DescribableTextures.json'),
+            data_root=os.path.join(root_dir, 'images'),
+            split='test',
+            transforms=torchvision.transforms.Compose([])
+        )
+        train_dataset_unaugmented = JSONDataset(
+            json_path=os.path.join(root_dir,
+                                   'split_zhou_DescribableTextures.json'),
+            data_root=os.path.join(root_dir, 'images'),
+            split='train',
+            transforms=test_transform
+        )
+        val_dataset_unaugmented = JSONDataset(
+            json_path=os.path.join(root_dir,
+                                      'split_zhou_DescribableTextures.json'),
+            data_root=os.path.join(root_dir, 'images'),
+            split='test',
+            transforms=test_transform
+        )
+        train_dataset.classes = list(map(lambda x: x[0], sorted(train_dataset.class_to_idx.items(), key=lambda x: x[1])))
+        val_dataset.classes = list(map(lambda x: x[0], sorted(val_dataset.class_to_idx.items(), key=lambda x: x[1])))
+        train_dataset_unaugmented.classes = list(map(lambda x: x[0], sorted(train_dataset_unaugmented.class_to_idx.items(), key=lambda x: x[1])))
+        val_dataset_unaugmented.classes = list(map(lambda x: x[0], sorted(val_dataset_unaugmented.class_to_idx.items(), key=lambda x: x[1])))
+    elif dataset_name == 'multicrop_eurosat':
+        root_dir = os.path.join(cfg.main.data_path, 'eurosat')
+        train_dataset = JSONDataset(
+            json_path=os.path.join(root_dir,
+                                   'split_zhou_EuroSAT.json'),
+            data_root=os.path.join(root_dir, 'images'),
+            split='train',
+            transforms=torchvision.transforms.Compose([])
+        )
+        val_dataset = JSONDataset(
+            json_path=os.path.join(root_dir,
+                                   'split_zhou_EuroSAT.json'),
+            data_root=os.path.join(root_dir, 'images'),
+            split='test',
+            transforms=torchvision.transforms.Compose([])
+        )
+        train_dataset_unaugmented = JSONDataset(
+            json_path=os.path.join(root_dir,
+                                   'split_zhou_EuroSAT.json'),
+            data_root=os.path.join(root_dir, 'images'),
+            split='train',
+            transforms=test_transform
+        )
+        val_dataset_unaugmented = JSONDataset(
+            json_path=os.path.join(root_dir,
+                                        'split_zhou_EuroSAT.json'),
+            data_root=os.path.join(root_dir, 'images'),
+            split='test',
+            transforms=test_transform
+        )
+        train_dataset.classes = list(map(lambda x: x[0], sorted(train_dataset.class_to_idx.items(), key=lambda x: x[1])))
+        val_dataset.classes = list(map(lambda x: x[0], sorted(val_dataset.class_to_idx.items(), key=lambda x: x[1])))
+        train_dataset_unaugmented.classes = list(map(lambda x: x[0], sorted(train_dataset_unaugmented.class_to_idx.items(), key=lambda x: x[1])))
+        val_dataset_unaugmented.classes = list(map(lambda x: x[0], sorted(val_dataset_unaugmented.class_to_idx.items(), key=lambda x: x[1])))
+    elif dataset_name == 'multicrop_flowers':
+        root_dir = os.path.join(cfg.main.data_path, 'flowers102')
+        train_dataset = JSONDataset(
+            json_path=os.path.join(root_dir,
+                                   'split_zhou_OxfordFlowers.json'),
+            data_root=os.path.join(root_dir, 'images'),
+            split='train',
+            transforms=torchvision.transforms.Compose([])
+        )
+        val_dataset = JSONDataset(
+            json_path=os.path.join(root_dir,
+                                   'split_zhou_OxfordFlowers.json'),
+            data_root=os.path.join(root_dir, 'images'),
+            split='test',
+            transforms=torchvision.transforms.Compose([])
+        )
+        train_dataset_unaugmented = JSONDataset(
+            json_path=os.path.join(root_dir,
+                                   'split_zhou_OxfordFlowers.json'),
+            data_root=os.path.join(root_dir, 'images'),
+            split='train',
+            transforms=test_transform
+        )
+        val_dataset_unaugmented = JSONDataset(
+            json_path=os.path.join(root_dir,
+                                        'split_zhou_OxfordFlowers.json'),
+            data_root=os.path.join(root_dir, 'images'),
+            split='test',
+            transforms=test_transform
+        )
+        train_dataset.classes = list(map(lambda x: x[0], sorted(train_dataset.class_to_idx.items(), key=lambda x: x[1])))
+        val_dataset.classes = list(map(lambda x: x[0], sorted(val_dataset.class_to_idx.items(), key=lambda x: x[1])))
+        train_dataset_unaugmented.classes = list(map(lambda x: x[0], sorted(train_dataset_unaugmented.class_to_idx.items(), key=lambda x: x[1])))
+        val_dataset_unaugmented.classes = list(map(lambda x: x[0], sorted(val_dataset_unaugmented.class_to_idx.items(), key=lambda x: x[1])))
+    elif dataset_name == 'multicrop_oxfordpets':
+        root_dir = os.path.join(cfg.main.data_path, 'oxford_pets')
+        train_dataset = JSONDataset(
+            json_path=os.path.join(root_dir,
+                                   'split_zhou_OxfordPets.json'),
+            data_root=os.path.join(root_dir, 'images'),
+            split='train',
+            transforms=torchvision.transforms.Compose([])
+        )
+        val_dataset = JSONDataset(
+            json_path=os.path.join(root_dir,
+                                   'split_zhou_OxfordPets.json'),
+            data_root=os.path.join(root_dir, 'images'),
+            split='test',
+            transforms=torchvision.transforms.Compose([])
+        )
+        train_dataset_unaugmented = JSONDataset(
+            json_path=os.path.join(root_dir,
+                                   'split_zhou_OxfordPets.json'),
+            data_root=os.path.join(root_dir, 'images'),
+            split='train',
+            transforms=test_transform
+        )
+        val_dataset_unaugmented = JSONDataset(
+            json_path=os.path.join(root_dir,
+                                        'split_zhou_OxfordPets.json'),
+            data_root=os.path.join(root_dir, 'images'),
+            split='test',
+            transforms=test_transform
+        )
+        train_dataset.classes = list(map(lambda x: x[0], sorted(train_dataset.class_to_idx.items(), key=lambda x: x[1])))
+        val_dataset.classes = list(map(lambda x: x[0], sorted(val_dataset.class_to_idx.items(), key=lambda x: x[1])))
+        train_dataset_unaugmented.classes = list(map(lambda x: x[0], sorted(train_dataset_unaugmented.class_to_idx.items(), key=lambda x: x[1])))
+        val_dataset_unaugmented.classes = list(map(lambda x: x[0], sorted(val_dataset_unaugmented.class_to_idx.items(), key=lambda x: x[1])))
+    elif dataset_name == 'multicrop_ucf101':
+        root_dir = os.path.join(cfg.main.data_path, 'ucf101')
+        train_dataset = JSONDataset(
+            json_path=os.path.join(root_dir,
+                                   'split_zhou_UCF101.json'),
+            data_root=os.path.join(root_dir, 'images'),
+            split='train',
+            transforms=torchvision.transforms.Compose([])
+        )
+        val_dataset = JSONDataset(
+            json_path=os.path.join(root_dir,
+                                   'split_zhou_UCF101.json'),
+            data_root=os.path.join(root_dir, 'images'),
+            split='test',
+            transforms=torchvision.transforms.Compose([])
+        )
+        train_dataset_unaugmented = JSONDataset(
+            json_path=os.path.join(root_dir,
+                                   'split_zhou_UCF101.json'),
+            data_root=os.path.join(root_dir, 'images'),
+            split='train',
+            transforms=test_transform
+        )
+        val_dataset_unaugmented = JSONDataset(
+            json_path=os.path.join(root_dir,
+                                        'split_zhou_UCF101.json'),
+            data_root=os.path.join(root_dir, 'images'),
+            split='test',
+            transforms=test_transform
+        )
+        train_dataset.classes = list(map(lambda x: x[0], sorted(train_dataset.class_to_idx.items(), key=lambda x: x[1])))
+        val_dataset.classes = list(map(lambda x: x[0], sorted(val_dataset.class_to_idx.items(), key=lambda x: x[1])))
+        train_dataset_unaugmented.classes = list(map(lambda x: x[0], sorted(train_dataset_unaugmented.class_to_idx.items(), key=lambda x: x[1])))
+        val_dataset_unaugmented.classes = list(map(lambda x: x[0], sorted(val_dataset_unaugmented.class_to_idx.items(), key=lambda x: x[1])))
     else:
         raise NotImplementedError()
 
