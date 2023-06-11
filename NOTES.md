@@ -1,2 +1,0 @@
-# finish cifar100 cluster
-./run.sh python3 main.py --config-name=submask_lin model.pret.source=hub model.pret.name=resnet50 model.pret.module=swav main.dataset=multicrop_cifar100 dl.scheduler=cosine cls.head_lr=0.15 cls.head_wd=0.000001 swav.queue_length=512 swav.epoch_queue_starts=215 swav.nmb_prototypes=500 dl.scheduler=cosine main.dataset_subset_clusters_file=notebook/output_clustersB.pt main.dataset_subset_cluster=3 dl.epochs=1074 main.resume_checkpoint=SUB-1013/last.ckpt
