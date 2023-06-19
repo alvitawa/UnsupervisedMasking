@@ -134,7 +134,6 @@ python3 main.py --config-name=submask_lin model.pret.source=hub model.pret.name=
 
  
 5. Now, embed the full dataset with each cluster by running
-6. 
 
 ```
 python3 main.py --config-name=submask_lin model.pret.source=hub model.pret.name=resnet50 model.pret.module=swav main.dataset=multicrop_cifar100 swav.nmb_prototypes=500 dl.scheduler=cosine main.train=0 main.load_checkpoint={run_id_step3}/last.ckpt cls.force_analysis_cpu=1
