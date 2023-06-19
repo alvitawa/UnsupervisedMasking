@@ -131,10 +131,16 @@ For linear probe accuracy, append `main.probe=1` to the command, and find `train
 python3 main.py --config-name=submask_lin model.pret.source=hub model.pret.name=resnet50 model.pret.module=swav main.dataset=multicrop_cifar100 dl.scheduler=cosine cls.head_lr=0.15 cls.head_wd=0.000001 swav.queue_length=512 swav.epoch_queue_starts={queue_start} swav.nmb_prototypes=500 dl.scheduler=cosine main.dataset_subset_clusters_file=notebook/output_clusters.pt main.dataset_subset_cluster={cluster_id} dl.epochs={epochs} main.load_checkpoint={run_id_step1}/last.ckpt main.strict_load_checkpoint=0
 ```
  Make sure to fill in the values for {queue_start}, {epochs}, {cluster_id} and {run_id_step1} (the run id of the model you trained in step 1). Use the formula $E = 50000/D ∗ 150$ to determine the number of epochs to train for, where $D$ is the number of datapoints in the cluster. Start the queue at $E/5$. Cluster id is 0-indexed. Run the command 5 times for the different cluster ids.
+
+ 
 5. Now, embed the full dataset with each cluster by running
+6. 
+
 ```
 python3 main.py --config-name=submask_lin model.pret.source=hub model.pret.name=resnet50 model.pret.module=swav main.dataset=multicrop_cifar100 swav.nmb_prototypes=500 dl.scheduler=cosine main.train=0 main.load_checkpoint={run_id_step3}/last.ckpt cls.force_analysis_cpu=1
 ```
 , replacing `{run_id_step3}` with the run id from step 3. Its essentially the same command from step3 but we add `main.train=0` to prevent training (embedding happens automatically) and remove the `main.dataset_subset_clusters_file` parameter as well as some redundant training hyperparameters.
+
+
 6. Next, fill in `conf_ensembling/c100_fixed.yaml` with the run ids from step4 (not step3). Make sure to fill them in the right order. The first run id should be the run from step1, and subsequent run ids should be from step4, starting with cluster 0's run and on to cluster 4's run.
 7. Finaly, run `python3 ensemble.py --config-name=c100_fixed --multirun method=pca_unconditional` for unconditional accuracy and `python3 ensemble.py --config-name=c100_fixed --multirun method=pca_conditional` for conditional accuracy. Accuracies will be printed to stdout.
