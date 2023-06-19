@@ -143,3 +143,7 @@ python3 main.py --config-name=submask_lin model.pret.source=hub model.pret.name=
 
 5. Next, fill in `conf_ensembling/c100_fixed.yaml` with the run ids from step4 (not step3). Make sure to fill them in the right order. The first run id should be the run from step1, and subsequent run ids should be from step4, starting with cluster 0's run and on to cluster 4's run.
 6. Finaly, run `python3 ensemble.py --config-name=c100_fixed --multirun method=pca_unconditional` for unconditional accuracy and `python3 ensemble.py --config-name=c100_fixed --multirun method=pca_conditional` for conditional accuracy. Accuracies will be printed to stdout.
+
+
+# Hardware
+At least 24GB of GPU memory are necessary to run the most demanding experiments. On an A100 gpu, most experiments take less than 24h.
