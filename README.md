@@ -87,7 +87,9 @@ Now you are ready to run the experiments.
 
 ## Experiments
 ### Supervised masking (ResNet)
-`python3 main.py --config-name submask --multirun main.dataset=cifar100 model.pret.source=hub model.pret.name=resnet50 main.dataset_subset=10p`
+```
+python3 main.py --config-name submask --multirun main.dataset=cifar100 model.pret.source=hub model.pret.name=resnet50 main.dataset_subset=10p
+```
 
 See `volt/dataset.py->get_dataset()` for the available datasets.
 Remove `main.dataset_subset=10p` to run on the full dataset rather than 10%.
