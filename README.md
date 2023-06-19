@@ -54,7 +54,7 @@ model = submasking.SubmaskedModel(model, parameter_selection=par_sel, scores_ini
 # ... train the model
 ```
 
-You can use this code to mask arbitrary architectures by only changing the `par_sel` function. In theory it should work for all, however, we only tested on ResNets from timm and Vision Transformers from CLIP.
+You can use this code to mask arbitrary architectures by only changing the `par_sel` function. In theory it should work for all, however, we only tested on ResNets from timm or torch hub and Vision Transformers from CLIP.
 
 # Reproduction
 
