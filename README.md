@@ -32,6 +32,7 @@ weight_summary = ""
 for name, param in model.named_parameters():
     row = f"{name}: {param.shape}, {param.numel()} elements, requires_grad={param.requires_grad}\n"
     weight_summary += row
+print(weight_summary)
     
 # Select which parameters to train, mask or freeze based on the name of the parameter.
 def par_sel(name, param):
