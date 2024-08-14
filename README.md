@@ -4,15 +4,17 @@ This code provides a PyTorch implementation for self-supervised fine-tuning thro
 
 ![image](https://github.com/alvitawa/UnsupervisedMasking/assets/10909323/8196e960-da4e-45ec-8221-1c5caa71dbef)
 
-With the advent of billion-parameter foundation models, efficient fine-tuning has become
-increasingly important for the adaptation of models to downstream tasks. However, especially
-in computer vision, it can be hard to achieve good performance when access to quality labeled
-data is lacking. In this work, we propose a method adapting pretrained generalist models in
-a self-supervised manner by learning binary masks. These self-supervised masking networks
-(SMNs) are up to 32x more efficient to store and significantly improve performance on label-
-efficient downstream tasks. We validate the usefulness of learning binary masks as a fine-tuning
-method on 8 datasets and 3 model architectures, and we demonstrate the effectiveness of SMNs
-in 3 label-efficient settings.
+With the advent of billion-parameter foundation models,
+efficient fine-tuning has become increasingly important for the adaptation
+of models to downstream tasks. However, especially in computer vision, it
+can be hard to achieve good performance when access to quality labeled
+data is lacking. In this work, we propose a method adapting pretrained
+generalist models in a self-supervised manner by learning binary masks.
+These self-supervised masking networks (SMNs) are up to 79x more
+efficient to store and significantly improve performance on label-efficient
+downstream tasks. We validate the usefulness of learning binary masks
+as a fine-tuning method on 8 datasets and 3 model architectures, and we
+demonstrate the effectiveness of SMNs in 3 label-efficient settings.
 
 # Usage
 
