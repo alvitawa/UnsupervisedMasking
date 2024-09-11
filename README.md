@@ -4,6 +4,7 @@ This code provides a PyTorch implementation for self-supervised fine-tuning thro
 
 ![paper](https://github.com/alvitawa/UnsupervisedMasking/blob/main/045.pdf)
 ![appendix](https://github.com/alvitawa/UnsupervisedMasking/blob/main/045-supp.pdf)
+
 ![image](https://github.com/alvitawa/UnsupervisedMasking/assets/10909323/8196e960-da4e-45ec-8221-1c5caa71dbef)
 
 With the advent of billion-parameter foundation models,
