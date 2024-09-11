@@ -2,8 +2,8 @@
 
 This code provides a PyTorch implementation for self-supervised fine-tuning through self-masking, as described in the paper Self-Masking Networks for Unsupervised Adaptation.
 
-![paper](https://github.com/alvitawa/UnsupervisedMasking/blob/main/045.pdf)
-![appendix](https://github.com/alvitawa/UnsupervisedMasking/blob/main/045-supp.pdf)
+[![paper](https://github.com/alvitawa/UnsupervisedMasking/blob/main/045.pdf)]
+[![appendix](https://github.com/alvitawa/UnsupervisedMasking/blob/main/045-supp.pdf)]
 
 ![image](https://github.com/alvitawa/UnsupervisedMasking/assets/10909323/8196e960-da4e-45ec-8221-1c5caa71dbef)
 
